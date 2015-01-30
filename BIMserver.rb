@@ -1,6 +1,6 @@
 #  BIMserver.rb
 #  
-#  Copyright 2015 Jan Brouwer <Jan@brewsky.nl>
+#  Copyright 2015 Jan Brouwer <jan@brewsky.nl>
 #  
 #  This program is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU General Public License as published by
@@ -24,11 +24,17 @@
 require 'sketchup.rb'
 require 'extensions.rb'
 
-SKETCHUP_CONSOLE.show
-
-module BIMserver
-  bimserver_extension = SketchupExtension.new("Send to BIMserver", "BIMserver/core.rb")
-  bimserver_extension.version = '0.1'
-  bimserver_extension.description = 'Send model to BIMserver as IFC.'
-  Sketchup.register_extension(bimserver_extension, true)
-end # module BIMserver
+module Brewsky
+  PLUGIN_ROOT_PATH  = File.dirname(__FILE__)
+  AUTHOR_PATH       = File.join(PLUGIN_ROOT_PATH, 'Brewsky')
+  
+  module BIMserver
+    PLUGIN_PATH       = File.join(AUTHOR_PATH, 'BIMserver')
+    PLUGIN_IMAGE_PATH = File.join(PLUGIN_PATH, 'images')
+  
+    bimserver_extension = SketchupExtension.new("BIMserver", "Brewsky/BIMserver/core.rb")
+    bimserver_extension.version = '0.1'
+    bimserver_extension.description = 'SketchUp client for BIMserver.'
+    Sketchup.register_extension(bimserver_extension, true)
+  end # module BIMserver
+end # module Brewsky
