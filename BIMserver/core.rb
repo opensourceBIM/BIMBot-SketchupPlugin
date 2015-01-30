@@ -19,6 +19,11 @@
 #  
 #  
 
+require 'uri'
+require 'net/http'
+require 'JSON'
+require "base64"
+    
 module BIMserver
   extension_path = File.dirname( __FILE__ )
   skui_path = File.join( extension_path, 'SKUI' )
@@ -34,6 +39,7 @@ module BIMserver
     show_summary = false
     model.export tempfile, show_summary
     
+    file = nil
     counter = 1
     output = ""
     begin
@@ -101,7 +107,7 @@ module BIMserver
     group.add_control( lbl3 )
     
     # create send button
-    b = SKUI::Button.new( 'Upload!' ) { UI.messagebox('Upload failed :-(') }
+    b = SKUI::Button.new( 'Upload!' ) { BIMserver_testcall(tempfile) }
     b.position( 10, 90 )
     group.add_control( b )
     
@@ -117,4 +123,103 @@ module BIMserver
     w.show
     
   }
+  class BIMserver_connection
+    def initialize(server, user, password)
+      @user = user
+      @password = password
+      @uri = URI(server)
+      @http_connection = Net::HTTP.new(@uri.host, @uri.port)
+      @http_connection.use_ssl = false
+      @token = login
+    end
+    def login
+      
+      message_hash =
+      {
+        "request"=>
+        {
+          "interface"=>"Bimsie1AuthInterface",
+          "method"=>"login",
+          "parameters"=>
+          {
+            "username"=> @user,
+            "password"=> @password
+          }
+        }
+      }
+      
+      return request(message_hash)
+    end # def login
+    
+    # send message to BIMserver and get response
+    def request(message_hash)
+      message_json = JSON.generate(message_hash)
+      response_json = @http_connection.post(@uri.path, message_json)
+      response = JSON.parse (response_json.body)
+      result = response["response"]["result"]
+      return result
+    end # def request
+    
+    def checkin(filename)
+      file = File.new(filename, "r")
+      file_contents = file.read
+      file_size = file.size
+      file_base64 = Base64.encode64(file_contents)
+      
+      message_hash =
+      {
+        "token" => @token,
+        "request" => 
+        {
+          "interface" => "Bimsie1ServiceInterface",
+          "method" => "checkin",
+          "parameters" =>
+          {
+            "poid"=> "131073",
+            "comment"=> "",
+            "deserializerOid"=> "655401",
+            "fileSize"=> file_size,
+            "fileName"=> "test.ifc",
+            "data"=> file_base64,
+            "sync"=> "false"
+          }
+        }
+      }
+      return request(message_hash)
+      
+      
+      
+    end # def checkin
+    def getAllProjects
+      
+      message_hash =
+      {
+        "token" => @token,
+        "request" => 
+        {
+          "interface" => "Bimsie1ServiceInterface",
+          "method" => "getAllProjects",
+          "parameters" =>
+          {
+            "onlyTopLevel" => "true",
+            "onlyActive" => "false"
+          }
+        }
+      }
+      return request(message_hash)
+    end # def getAllProjects
+  end # class BIMserver_connection
+  def self.BIMserver_testcall(file)
+
+    server = "http://localhost:8082/json"
+    user = "jan@brewsky.nl"
+    password = "***REMOVED***"
+    conn = BIMserver_connection.new(server, user, password)
+    
+    #puts conn.getAllProjects
+    
+    # checkin IFC file
+    puts conn.checkin(file)
+    
+  end # def BIMserver_testcall()
 end # module BIMserver
