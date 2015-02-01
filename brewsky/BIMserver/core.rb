@@ -25,35 +25,32 @@ require 'JSON'
 require "base64"
     
 module Brewsky::BIMserver
+  
+  # Create toolbar containing all available BIMserver tools.
+  toolbar = UI::Toolbar.new "BIMserver"
+  
+  # This toolbar command exports the current model to BIMserver.
+  cmd = UI::Command.new("Export to BIMserver") {
+   BIMserver_testcall()
+  }
+  cmd.small_icon = File.join(PLUGIN_IMAGE_PATH, "bimserver_small.png")
+  cmd.large_icon = File.join(PLUGIN_IMAGE_PATH, "bimserver_large.png")
+  cmd.tooltip = "Export to BIMserver"
+  cmd.status_bar_text = "Exporting to BIMserver..."
+  cmd.menu_text = "Export to BIMserver"
+  toolbar = toolbar.add_item cmd
+  toolbar.show
+  
+  # Load SKUI ui library
   extension_path = File.dirname( __FILE__ )
   skui_path = File.join( extension_path, 'SKUI' )
   load File.join( skui_path, 'embed_skui.rb' )
   ::SKUI.embed_in( self )
-  # SKUI module is now available under Example::SKUI
+  # SKUI module is now available under Brewsky::BIMserver::SKUI
 
   # Add a menu item to launch our plugin.
   UI.menu("Plugins").add_item("Send to BIMserver") {
-    model = Sketchup.active_model
-    tempdir=ENV["TMPDIR"] if not tempdir=ENV["TEMP"]
-    tempfile = File.join(tempdir, "tmp.ifc")
-    show_summary = false
-    model.export tempfile, show_summary
-    
-    file = nil
-    counter = 1
-    output = ""
-    begin
-      file = File.new(tempfile, "r")
-      while (line = file.gets)
-        output = output + line
-        counter = counter + 1
-      end
-      file.close
-    rescue => err
-      puts "Exception: #{err}"
-      err
-    end
-    
+
     # create SKUI webdialog    
     options = {
       :title           => 'BIMserver Export',
@@ -107,7 +104,7 @@ module Brewsky::BIMserver
     group.add_control( lbl3 )
     
     # create send button
-    b = SKUI::Button.new( 'Upload!' ) { BIMserver_testcall(tempfile) }
+    b = SKUI::Button.new( 'Upload!' ) { BIMserver_testcall() }
     b.position( 10, 90 )
     group.add_control( b )
     
@@ -128,12 +125,13 @@ module Brewsky::BIMserver
       @user = user
       @password = password
       @uri = URI(server)
+      @log = ""
+      
+      # create http connection to BIMserver
       @http_connection = Net::HTTP.new(@uri.host, @uri.port)
       @http_connection.use_ssl = false
-      @token = login
-    end
-    def login
       
+      #login on BIMserver
       message_hash =
       {
         "request"=>
@@ -147,64 +145,81 @@ module Brewsky::BIMserver
           }
         }
       }
+      @token = request(message_hash)
       
-      return request(message_hash)
-    end # def login
+    end # def initialize
+    
+    def log(message=nil)
+      if message.is_a? String 
+        @log << message + "\n"
+      end
+      return @log
+    end
     
     # send message to BIMserver and get response
     def request(message_hash)
-      puts JSON.pretty_generate(message_hash)
+      #puts JSON.pretty_generate(message_hash)
       message_json = JSON.generate(message_hash)
       response_json = @http_connection.post(@uri.path, message_json)
       response = JSON.parse (response_json.body)
       #puts JSON.pretty_generate(response)
-      result = response["response"]["result"]
-      return result
+      
+      #check if a result was found
+      if response["response"]["result"]
+        result = response["response"]["result"]
+        return result
+      else
+        raise StandardError, "BIMserver: " + response["response"]["exception"]["message"]
+        return false
+      end
     end # def request
     
     def checkin(ifc_file, project_name)
-      file = File.new(ifc_file, "r")
-      file_contents = file.read
-      file_size = file.size
-      file_base64 = Base64.encode64(file_contents)
-      
-      file_name = Sketchup.active_model.title
-      if not file_name or file_name==""
-        UI.messagebox("IFC Exporter:\n\nPlease save your project before Exporting to IFC\n")
-        return nil
-      end
-      
-      # add IFC file extention
-      file_name = file_name + ".ifc"
-      
-      # use the following deserializer
-      deserializer_name = "Ifc2x3tc1 Step Deserializer"
-      deserializerOid = get_deserializerOid(deserializer_name)
-      
-      # checkin into the following project
-      projectOid = get_projectOid(project_name)
-      
-      message_hash =
-      {
-        "token" => @token,
-        "request" => 
+      #if @token
+        file = File.new(ifc_file, "r")
+        file_contents = file.read
+        file_size = file.size
+        file_base64 = Base64.encode64(file_contents)
+        
+        file_name = Sketchup.active_model.title
+        if not file_name or file_name==""
+          UI.messagebox("IFC Exporter:\n\nPlease save your project before Exporting to IFC\n")
+          return nil
+        end
+        
+        # add IFC file extention
+        file_name = file_name + ".ifc"
+        
+        # use the following deserializer
+        deserializer_name = "Ifc2x3tc1 Step Deserializer"
+        deserializerOid = get_deserializerOid(deserializer_name)
+        
+        # checkin into the following project
+        projectOid = get_projectOid(project_name)
+        
+        message_hash =
         {
-          "interface" => "Bimsie1ServiceInterface",
-          "method" => "checkin",
-          "parameters" =>
+          "token" => @token,
+          "request" => 
           {
-            "poid"=> projectOid,
-            "comment"=> "",
-            "deserializerOid"=> deserializerOid,
-            "fileSize"=> file_size,
-            "fileName"=> file_name,
-            "data"=> file_base64,
-            "sync"=> "false"
+            "interface" => "Bimsie1ServiceInterface",
+            "method" => "checkin",
+            "parameters" =>
+            {
+              "poid"=> projectOid,
+              "comment"=> "",
+              "deserializerOid"=> deserializerOid,
+              "fileSize"=> file_size,
+              "fileName"=> file_name,
+              "data"=> file_base64,
+              "sync"=> "false"
+            }
           }
         }
-      }
-      return request(message_hash)
-      
+        return request(message_hash)
+      #else
+      #  log("Unable to checkin model, not logged in on BIMserver")
+      #end
       
       
     end # def checkin
@@ -220,7 +235,7 @@ module Brewsky::BIMserver
           "parameters" =>
           {
             "onlyTopLevel" => "true",
-            "onlyActive" => "false"
+            "onlyActive" => "true"
           }
         }
       }
@@ -268,16 +283,47 @@ module Brewsky::BIMserver
   end # class BIMserver_connection
   
   # Test method for uploading the current SketchUp model to a BIMserver
-  def self.BIMserver_testcall(file)
-
+  def self.BIMserver_testcall()
+    
+    # BIMserver parameters
     server = "http://thebimfederationserver.thebimfederation.com:80/json"
     user = "jan@brewsky.nl"
     password = "***REMOVED***"
     project = "su2BIMserver"
-    conn = BIMserver_connection.new(server, user, password)
     
-    # checkin IFC file
-    conn.checkin(file, project)
+    # make connection with BIMserver
+    begin
+      conn = BIMserver_connection.new(server, user, password)
+    
+      # Export model to temporary IFC file
+      model = Sketchup.active_model
+      tempdir=ENV["TMPDIR"] if not tempdir=ENV["TEMP"]
+      tempfile = File.join(tempdir, "tmp.ifc")
+      show_summary = false
+      model.export tempfile, show_summary
+      
+      file = nil
+      counter = 1
+      output = ""
+      begin
+        file = File.new(tempfile, "r")
+        while (line = file.gets)
+          output = output + line
+          counter = counter + 1
+        end
+        file.close
+      rescue => err
+        puts "Error reading temporary IFC file: #{err}"
+        err
+      end
+      
+      # checkin IFC file
+      conn.checkin(tempfile, project)
+    rescue SocketError => err
+        puts "Error connecting to BIMserver: #{err}"
+    rescue => err
+        puts err
+    end
     
   end # def BIMserver_testcall()
 end # module Brewsky::BIMserver
