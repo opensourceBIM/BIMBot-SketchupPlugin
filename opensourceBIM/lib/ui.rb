@@ -1,4 +1,4 @@
-#  BIMserver.rb
+#  ui.rb
 #  
 #  Copyright 2015 Jan Brouwer <jan@brewsky.nl>
 #  
@@ -19,22 +19,24 @@
 #  
 #  
 
-# Create an entry in the Extension list that loads a script called
-# loader.rb.
-require 'sketchup.rb'
-require 'extensions.rb'
+# Common toolbar for opensourceBIM
+
+require 'sketchup'
 
 module OpenSourceBIM
-  PLUGIN_ROOT_PATH = File.dirname(__FILE__) unless defined? PLUGIN_ROOT_PATH
-  AUTHOR_PATH = File.join(PLUGIN_ROOT_PATH, 'opensourceBIM') unless defined? AUTHOR_PATH
+  module OsBimUI
+    extend self
   
-  module BIMserver
-    PLUGIN_PATH       = File.join(AUTHOR_PATH, 'BIMserver')
-    PLUGIN_IMAGE_PATH = File.join(PLUGIN_PATH, 'images')
-  
-    bimserver_extension = SketchupExtension.new("BIMserver", File.join(PLUGIN_PATH, 'loader.rb'))
-    bimserver_extension.version = '0.1'
-    bimserver_extension.description = 'SketchUp client for BIMserver.'
-    Sketchup.register_extension(bimserver_extension, true)
-  end # module OpenSourceBIM
-end # module Brewsky
+    # Create toolbar containing all available OpenSourceBIM tools.
+    @toolbar = UI::Toolbar.new "opensourceBIM"
+    @toolbar.show
+    
+    # Add tool to toolbar and dialog
+    # - name must be a "String"
+    # - toolbar_command must be a "UI::Command"
+    # - dialog_section must be a ...
+    def add_item(toolbar_command)
+      @toolbar.add_item toolbar_command
+    end
+  end # OsBimUI
+end # module OpenSourceBIM
