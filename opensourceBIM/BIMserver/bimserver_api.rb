@@ -72,7 +72,7 @@ module OpenSourceBIM
           
           file_name = Sketchup.active_model.title
           if not file_name or file_name==""
-            UI.messagebox("IFC Exporter:\n\nPlease save your project before Exporting to IFC\n")
+            raise "Please save your project before Exporting to IFC"
             return nil
           end
           
@@ -180,7 +180,7 @@ module OpenSourceBIM
           result = response["response"]["result"]
           return result
         else
-          raise StandardError, "BIMserver: " + response["response"]["exception"]["message"]
+          raise StandardError, response["response"]["exception"]["message"]
           return false
         end
       end # def request

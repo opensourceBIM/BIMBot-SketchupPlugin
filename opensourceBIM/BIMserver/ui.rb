@@ -113,11 +113,14 @@ module OpenSourceBIM
         lbl_password.width = 60
         group_server.add_control( lbl_password )
           
-        lbl_conn = SKUI::Label.new( 'Connected!' )
+        lbl_conn = SKUI::Label.new( 'Not connected' ) # Should this be a label, or just a text?
         lbl_conn.visible = false
         lbl_conn.position( 160, 125 )
         lbl_conn.right = 10
         group_server.add_control( lbl_conn )
+        
+        # create placeholder for checkin_section
+        checkin_section = nil
         
         # add login button
         btn_conn = SKUI::Button.new( 'Connect' ) { |control|
@@ -126,17 +129,24 @@ module OpenSourceBIM
           # make connection with BIMserver
           begin
             conn = BIMserver_connection.new(txt_address.value, txt_port.value, txt_user.value, txt_password.value)
-            lbl_conn.caption = 'Connected!'
+            lbl_conn.caption = 'Connected to BIMserver'
             lbl_conn.visible = true
             
             # Create checkin section
-            show_checkin(conn)
+            checkin_section = show_checkin(conn)
           rescue => err
             puts "Error connecting to BIMserver: #{err}"
             lbl_conn.caption = "Error connecting to BIMserver: #{err}"
             lbl_conn.visible = true
             
-            # Delete checkin section if it exists!!!
+            # Delete checkin section if it exists
+            unless checkin_section.nil?
+              @window.remove_control(checkin_section)
+              # The other controls are not deleted, but overwritten along the way on a succesful login
+              
+              # instead of removing, it could also be hidden and later overwritten, don't know which is best here...
+              #checkin_section.visible = false
+            end
 
           end
           
@@ -147,9 +157,9 @@ module OpenSourceBIM
         
         @window.show
 
-        txt_address.on( :blur )   {
-          puts "blur address"
-        }
+        #txt_address.on( :blur )   {
+        #  puts "blur address"
+        #}
         
       end # def initialize
       
@@ -176,29 +186,43 @@ module OpenSourceBIM
         lst_dropdown.value = lst_dropdown.items.first
         lst_dropdown.position( 70, 18 )
         lst_dropdown.right = 10
-        lst_dropdown.on( :change ) { |control, value| # (?) Second argument needed?
-          puts "Dropbox value: #{control.value}"
-        }
+        #lst_dropdown.on( :change ) { |control, value| # (?) Second argument needed?
+        #  puts "Dropbox value: #{control.value}"
+        #}
         group_checkin.add_control( lst_dropdown )
         
         lbl_projects = SKUI::Label.new( 'Project:', lst_dropdown )
         lbl_projects.position( 10, 21 )
         lbl_projects.width = 60
         group_checkin.add_control( lbl_projects )
+          
+        lbl_checkin = SKUI::Label.new( 'Not uploaded' ) # Should this be a label, or just a text?
+        lbl_checkin.visible = false
+        lbl_checkin.position( 160, 53 )
+        lbl_checkin.right = 10
+        group_checkin.add_control( lbl_checkin )
         
         # add model checkin button
-        btn_checkin = SKUI::Button.new( 'Upload!' ) { |control|
-          project_name = lst_dropdown.value
-          project_oid = connection.get_projectOid(project_name)
-          ifc = BIMserver.IfcWrite
-          
-          if connection.checkin(ifc, project_oid)
-            UI.messagebox('Model checked in!')
+        btn_checkin = SKUI::Button.new( 'Upload' ) { |control|
+        
+          # add model checkin button that uploads the model
+          begin
+            project_name = lst_dropdown.value
+            project_oid = connection.get_projectOid(project_name)
+            ifc = BIMserver.IfcWrite
+            if connection.checkin(ifc, project_oid)
+              lbl_checkin.caption = "Model upload succesful."
+              lbl_checkin.visible = true
+            end
+          rescue => err
+            lbl_checkin.caption = "Error uploading to BIMserver: #{err}"
+            lbl_checkin.visible = true
           end
         }
         btn_checkin.position( 70, 50 )
         btn_checkin.tooltip = 'Check in current model'
         group_checkin.add_control( btn_checkin )
+        return group_checkin
         
       end # def show_checkin      
     end # class BIMserverWindow
