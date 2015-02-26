@@ -41,26 +41,38 @@ module OpenSourceBIM
           counter = counter + 1
         end
         file.close
+        file.unlink    # deletes the temp file
       rescue => err
         puts "Error reading temporary IFC file: #{err}"
         err
       end
       
-      ### !!!Cleanup temp file afterwards!!! ###
-      
       ifc_data
       
     end # def IfcRead
+    
+    # currently only writes temporary file
     def IfcWrite
+      
+      # check if it's possible to write IFC files
+      unless Sketchup.version_number > 14000000
+        raise "You need at least SketchUp 2014 to be able to create IFC-files"
+      end
+      unless Sketchup.is_pro?
+        raise "You need at least SketchUp PRO to be able to create IFC-files"
+      end
     
       # Export model to temporary IFC file
       model = Sketchup.active_model
-      tempdir=ENV["TMPDIR"] if not tempdir=ENV["TEMP"]
-      tempfile = File.join(tempdir, "tmp.ifc")
+      file = Tempfile.new(['BIMserver-', '.ifc'])
       show_summary = false
-      model.export tempfile, show_summary
       
-      tempfile
+      unless model.export file.path , show_summary
+        raise "Unable to write temporary IFC-file"
+      end
+      
+      # return the temp file
+      file
       
     end # def IfcExport
   end # BIMserver

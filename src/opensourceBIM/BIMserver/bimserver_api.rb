@@ -73,7 +73,6 @@ module OpenSourceBIM
           file_name = Sketchup.active_model.title
           if not file_name or file_name==""
             raise "Please save your project before Exporting to IFC"
-            return nil
           end
           
           # add IFC file extention
