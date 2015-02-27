@@ -56,10 +56,10 @@ module OpenSourceBIM
       
       # check if it's possible to write IFC files
       unless Sketchup.version_number > 14000000
-        raise "You need at least SketchUp 2014 to be able to create IFC-files"
+        raise "You need at least SketchUp 2014 to create IFC-files"
       end
       unless Sketchup.is_pro?
-        raise "You need at least SketchUp PRO to be able to create IFC-files"
+        raise "You need SketchUp PRO to create IFC-files"
       end
     
       # Export model to temporary IFC file
