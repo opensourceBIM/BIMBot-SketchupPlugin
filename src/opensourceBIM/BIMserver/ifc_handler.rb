@@ -22,6 +22,7 @@
 # IFC processors
 
 require 'sketchup'
+require 'tempfile'
 
 module OpenSourceBIM
   module BIMserver
@@ -61,7 +62,7 @@ module OpenSourceBIM
       unless Sketchup.is_pro?
         raise "You need SketchUp PRO to create IFC-files"
       end
-    
+      
       # Export model to temporary IFC file
       model = Sketchup.active_model
       file = Tempfile.new(['BIMserver-', '.ifc'])
