@@ -25,6 +25,12 @@ require 'sketchup'
 
 module OpenSourceBIM
   module BIMserver
+    
+    # load SKUI webdialog helper library
+    skui_path = File.join( AUTHOR_PATH, 'lib', 'SKUI' )
+    load File.join( skui_path, 'embed_skui.rb' )
+    ::SKUI.embed_in( self )
+    
     class BIMserverWindow
       
       require File.join(PLUGIN_PATH, 'bimserver_api')
@@ -41,9 +47,6 @@ module OpenSourceBIM
         user = server_config.get("username")
         password = server_config.get("password")
         project = server_config.get("project")
-        
-        # load SKUI webdialog helper library
-        require File.join(AUTHOR_PATH, 'lib', 'SKUI', 'core.rb')
         
         options = {
           :title           => 'BIMserver connector',
