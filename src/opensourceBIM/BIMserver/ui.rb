@@ -60,9 +60,27 @@ module OpenSourceBIM
         
         #@window.on( :blur )   { puts 'Window Blur' }
 
+        # add groupbox for log
+        group_log = SKUI::Groupbox.new( 'Connection log' )
+        group_log.position( 5, 5 )
+        group_log.right = 5
+        group_log.height = 200
+        @window.add_control( group_log )
+        
+        # add log window
+        @log = SKUI::Textbox.new(  )
+        @log.multiline = true
+        @log.readonly = true
+        @log.name = :txt_name
+        @log.position( 10, 20 )
+        @log.height = 158
+        @log.right = 10 # (!) Currently ignored by browser.
+        @log.background_color = Sketchup::Color.new( 84, 84, 84 )
+        group_log.add_control( @log )
+
         # add groupbox for server settings
         group_server = SKUI::Groupbox.new( 'Server connection' )
-        group_server.position( 5, 5 )
+        group_server.position( 5, 205 )
         group_server.right = 5
         group_server.height = 176
         #group_server.foreground_color = Sketchup::Color.new( 192, 0, 0 )
@@ -107,6 +125,7 @@ module OpenSourceBIM
         # add password input box
         txt_password = SKUI::Textbox.new( password )
         txt_password.name = :txt_name
+        txt_password.password = true
         txt_password.position( 70, 95 )
         txt_password.right = 10 # (!) Currently ignored by browser.
         group_server.add_control( txt_password )
@@ -116,11 +135,11 @@ module OpenSourceBIM
         lbl_password.width = 60
         group_server.add_control( lbl_password )
           
-        lbl_conn = SKUI::Label.new( 'Not connected' ) # Should this be a label, or just a text?
-        lbl_conn.visible = false
-        lbl_conn.position( 160, 125 )
-        lbl_conn.right = 10
-        group_server.add_control( lbl_conn )
+        #lbl_conn = SKUI::Label.new( 'Not connected' ) # Should this be a label, or just a text?
+        #lbl_conn.visible = false
+        #lbl_conn.position( 160, 125 )
+        #lbl_conn.right = 10
+        #group_server.add_control( lbl_conn )
         
         # create placeholder for checkin_section
         checkin_section = nil
@@ -132,15 +151,16 @@ module OpenSourceBIM
           # make connection with BIMserver
           begin
             conn = BIMserver_connection.new(txt_address.value, txt_port.value, txt_user.value, txt_password.value)
-            lbl_conn.caption = 'Connected to BIMserver'
-            lbl_conn.visible = true
+            log 'Connected to BIMserver'
+            #lbl_conn.caption = 'Connected to BIMserver'
+            #lbl_conn.visible = true
             
             # Create checkin section
             checkin_section = show_checkin(conn)
           rescue => err
-            puts "Error connecting to BIMserver: #{err}"
-            lbl_conn.caption = "Error connecting to BIMserver: #{err}"
-            lbl_conn.visible = true
+            log "Error connecting to BIMserver: #{err}"
+            #lbl_conn.caption = "Error connecting to BIMserver: #{err}"
+            #lbl_conn.visible = true
             
             # Delete checkin section if it exists
             unless checkin_section.nil?
@@ -179,7 +199,7 @@ module OpenSourceBIM
 
         # add groupbox for model checkin
         group_checkin = SKUI::Groupbox.new( 'Model checkin' )
-        group_checkin.position( 5, 168 )
+        group_checkin.position( 5, 368 )
         group_checkin.right = 5
         group_checkin.height = 164
         @window.add_control( group_checkin )
@@ -199,11 +219,11 @@ module OpenSourceBIM
         lbl_projects.width = 60
         group_checkin.add_control( lbl_projects )
           
-        lbl_checkin = SKUI::Label.new( 'Not uploaded' ) # Should this be a label, or just a text?
-        lbl_checkin.visible = false
-        lbl_checkin.position( 160, 53 )
-        lbl_checkin.right = 10
-        group_checkin.add_control( lbl_checkin )
+        #lbl_checkin = SKUI::Label.new( 'Not uploaded' ) # Should this be a label, or just a text?
+        #lbl_checkin.visible = false
+        #lbl_checkin.position( 160, 53 )
+        #lbl_checkin.right = 10
+        #group_checkin.add_control( lbl_checkin )
         
         # add model checkin button
         btn_checkin = SKUI::Button.new( 'Upload' ) { |control|
@@ -214,12 +234,14 @@ module OpenSourceBIM
             project_oid = connection.get_projectOid(project_name)
             ifc = BIMserver.IfcWrite
             if connection.checkin(ifc, project_oid)
-              lbl_checkin.caption = "Model upload succesful."
-              lbl_checkin.visible = true
+              log 'Model upload succesful.'
+              #lbl_checkin.caption = "Model upload succesful."
+              #lbl_checkin.visible = true
             end
           rescue => err
-            lbl_checkin.caption = "Error uploading to BIMserver: #{err}"
-            lbl_checkin.visible = true
+            log "Error uploading to BIMserver: #{err}"
+            #lbl_checkin.caption = "Error uploading to BIMserver: #{err}"
+            #lbl_checkin.visible = true
           end
         }
         btn_checkin.position( 70, 50 )
@@ -227,7 +249,11 @@ module OpenSourceBIM
         group_checkin.add_control( btn_checkin )
         return group_checkin
         
-      end # def show_checkin      
+      end # def show_checkin
+      def log( response )
+        @log.value += response + "\n"
+        puts response
+      end # def log
     end # class BIMserverWindow
   end # BIMserver
 end # module OpenSourceBIM
