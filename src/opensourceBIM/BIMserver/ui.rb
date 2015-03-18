@@ -251,7 +251,7 @@ module OpenSourceBIM
         
       end # def show_checkin
       def log( response )
-        @log.value += response + "\n"
+        @log.value += Time.now.to_s + ': ' + response + "\n"
         puts response
       end # def log
     end # class BIMserverWindow
