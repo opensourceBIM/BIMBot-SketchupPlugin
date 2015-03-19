@@ -71,9 +71,9 @@ module OpenSourceBIM
           file_base64 = Base64.encode64(file_contents)
           
           file_name = Sketchup.active_model.title
-          if not file_name or file_name==""
-            raise "Please save your project before Exporting to IFC"
-          end
+          #if not file_name or file_name==""
+          #  raise "Please save your project before Exporting to IFC"
+          #end
           
           # add IFC file extention
           file_name = file_name + ".ifc"
@@ -138,6 +138,25 @@ module OpenSourceBIM
         end
       end # def get_deserializerOid
       
+      # Get checkin progress based on topicId returned by checkin request
+      def getProgress( topicId )
+        
+        message_hash =
+        {
+          "token" => @token,
+          "request" => 
+          {
+            "interface" => "Bimsie1NotificationRegistryInterface",
+            "method" => "getProgress",
+            "parameters" =>
+            {
+              "topicId" => topicId
+            }
+          }
+        }
+        return request(message_hash)
+      end # def getProgress
+      
       def getProjects
         
         message_hash =
@@ -156,6 +175,85 @@ module OpenSourceBIM
         }
         return request(message_hash)
       end # def getProjects
+      
+      
+      def getUsersProjects( uoid )
+        
+        message_hash =
+        {
+          "token" => @token,
+          "request" => 
+          {
+            "interface" => "ServiceInterface",
+            "method" => "getUsersProjects",
+            "parameters" =>
+            {
+              "uoid" => uoid
+            }
+          }
+        }
+        return request(message_hash)
+      end # def getUsersProjects
+      
+      
+      def getUserByUserName( username )
+        
+        message_hash =
+        {
+          "token" => @token,
+          "request" => 
+          {
+            "interface" => "ServiceInterface",
+            "method" => "getUserByUserName",
+            "parameters" =>
+            {
+              "username" => username
+            }
+          }
+        }
+        return request(message_hash)
+      end # def getUserByUserName
+      
+      
+      def getLoggedInUser
+        
+        message_hash =
+        {
+          "token" => @token,
+          "request" => 
+          {
+            "interface" => "AuthInterface",
+            "method" => "getLoggedInUser",
+            "parameters" =>
+            {
+            }
+          }
+        }
+        return request(message_hash)
+      end # def getLoggedInUser
+      
+      
+      
+      def getProgress( topicId )
+        
+        message_hash =
+        {
+          "token" => @token,
+          "request" => 
+          {
+            "interface" => "Bimsie1NotificationRegistryInterface",
+            "method" => "getProgress",
+            "parameters" =>
+            {
+              "topicId" => topicId
+            }
+          }
+        }
+        return request(message_hash)
+      end # def getProgress
+      
+      
+      
       
       # get the oid for the requested project name
       def get_projectOid(project_name)

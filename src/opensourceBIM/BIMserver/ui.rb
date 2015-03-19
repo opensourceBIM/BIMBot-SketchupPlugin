@@ -151,7 +151,7 @@ module OpenSourceBIM
           # make connection with BIMserver
           begin
             conn = BIMserver_connection.new(txt_address.value, txt_port.value, txt_user.value, txt_password.value)
-            log 'Connected to BIMserver'
+            log ('Connected to BIMserver at ' + txt_address.value)
             #lbl_conn.caption = 'Connected to BIMserver'
             #lbl_conn.visible = true
             
@@ -191,9 +191,12 @@ module OpenSourceBIM
       
         require File.join(PLUGIN_PATH, 'ifc_handler')
         
+        # Get user id
+        uoid = connection.getLoggedInUser["oid"]
+        
         # Get list of projects
         list = Array.new
-        connection.getProjects.each do |project|
+        connection.getUsersProjects( uoid ).each do |project|
           list << project["name"]
         end
 
@@ -233,10 +236,23 @@ module OpenSourceBIM
             project_name = lst_dropdown.value
             project_oid = connection.get_projectOid(project_name)
             ifc = BIMserver.IfcWrite
-            if connection.checkin(ifc, project_oid)
-              log 'Model upload succesful.'
-              #lbl_checkin.caption = "Model upload succesful."
-              #lbl_checkin.visible = true
+            topicId = connection.checkin(ifc, project_oid)
+            
+            progress = 0
+            start_time = Time.now
+            
+            log ('Model upload succesful.')
+            
+            until progress == 100
+              progress = connection.getProgress( topicId )["progress"]
+              
+              # raise error if processing takes to long
+              raise if Time.now - start_time > 10
+              
+              # Progress -1%??? 
+              unless progress == -1
+                log ('Processing revision: ' + progress.to_s + '%')
+              end
             end
           rescue => err
             log "Error uploading to BIMserver: #{err}"
