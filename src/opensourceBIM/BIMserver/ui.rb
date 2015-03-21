@@ -233,6 +233,7 @@ module OpenSourceBIM
         
           # add model checkin button that uploads the model
           begin
+            #??? Is it posible to create projects with duplicate names, is a poid required for selecting a single project ???
             project_name = lst_dropdown.value
             project_oid = connection.get_projectOid(project_name)
             ifc = BIMserver.IfcWrite
@@ -253,7 +254,20 @@ module OpenSourceBIM
               unless progress == -1
                 log ('Processing revision: ' + progress.to_s + '%')
               end
+              
+              
             end
+              
+            # get the id of the last revision
+            roid = connection.getProjectByPoid( project_oid )['lastRevisionId']
+            #log ('New revision id: ' + roid.to_s)
+              
+            # get revision number
+            revision = connection.getRevision( roid )['id']
+            log ('New revision #' + revision.to_s + ' (' + roid.to_s + ') created for project ' + project_name + ' (' + project_oid.to_s + ')')
+            
+            
+            
           rescue => err
             log "Error uploading to BIMserver: #{err}"
             #lbl_checkin.caption = "Error uploading to BIMserver: #{err}"

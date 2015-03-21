@@ -176,6 +176,43 @@ module OpenSourceBIM
         return request(message_hash)
       end # def getProjects
       
+      def getProjectByPoid( poid )
+        
+        message_hash =
+        {
+          "token" => @token,
+          "request" => 
+          {
+            "interface" => "Bimsie1ServiceInterface",
+            "method" => "getProjectByPoid",
+            "parameters" =>
+            {
+              "poid" => poid
+            }
+          }
+        }
+        return request(message_hash)
+      end # def getProjectByPoid 
+      
+      def getRevision( roid )
+        
+        message_hash =
+        {
+          "token" => @token,
+          "request" => 
+          {
+            "interface" => "Bimsie1ServiceInterface",
+            "method" => "getRevision",
+            "parameters" =>
+            {
+              "roid" => roid
+            }
+          }
+        }
+        return request(message_hash)
+      end # def getRevision 
+      
+      
       
       def getUsersProjects( uoid )
         
