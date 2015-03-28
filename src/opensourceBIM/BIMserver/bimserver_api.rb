@@ -19,7 +19,7 @@
 #  
 #  
 
-# UI elements for BIMserver
+# BIMserver connection calls
 
 require 'sketchup'
 
@@ -46,7 +46,7 @@ module OpenSourceBIM
         @http_connection.use_ssl = false
         
         #login on BIMserver
-        message_hash =
+        message =
         {
           "request"=>
           {
@@ -59,10 +59,101 @@ module OpenSourceBIM
             }
           }
         }
-        @token = request(message_hash)
+        @token = base_request(message)
         
       end # def initialize
+      
+      ##################################################################
+      ### helper methods
+      ##################################################################
     
+      # send message to BIMserver and get response
+      def request(message)
+        
+        # Add token to complete the request message
+        request =
+        {
+          "token" => @token,
+          "request" => message
+        }
+        base_request(request)
+      end # def request
+      
+      # send message to BIMserver and get response
+      def base_request(request)
+        
+        request_json = JSON.generate(request)
+        response_json = @http_connection.post(@server.path, request_json)
+        response = JSON.parse (response_json.body)
+        
+        #check if a result was found
+        if response["response"]["result"]
+          result = response["response"]["result"]
+          return result
+        else
+          raise StandardError, response["response"]["exception"]["message"]
+          return false
+        end
+      end # def base_request
+      
+      # get the oid for the requested deserializer name
+      def get_deserializerOid(deserializer_name)
+        getAllDeserializers.each do |deserializer|
+          if deserializer["name"] == deserializer_name
+            return deserializer["oid"]
+          end
+        end
+      end # def get_deserializerOid
+      
+      # get the oid for the requested project name
+      def get_projectOid(project_name)
+        getAllProjects.each do |project|
+          if project["name"] == project_name
+            return project["oid"]
+          end
+        end
+      end # def get_projectOid
+      
+      ##################################################################
+      ### BIMserver API calls
+      ##################################################################
+    
+      ### NOT COMPLETE ###
+      #def addExtendedDataToRevision(roid)
+        
+        #message_hash =
+        #{
+          #"token" => @token,
+          #"request" => 
+          #{
+            #"interface"=> "Bimsie1ServiceInterface", 
+            #"method"=> "addExtendedDataToRevision", 
+            #"parameters"=>
+            #{
+              #"roid"=> roid
+              #"extendedData"=>
+              #{
+                #"added"=> "undefined",
+                #"fileId"=> "undefined",
+                #"oid"=> "undefined",
+                #"projectId"=> "undefined",
+                #"revisionId"=> "undefined",
+                #"rid"=> "undefined",
+                #"schemaId"=> "undefined",
+                #"size"=> "undefined",
+                #"title"=> "undefined",
+                #"url"=> "undefined",
+                #"userId"=> "undefined"
+              #}
+            #}
+          #}
+        #}
+        
+        #return request(message_hash)
+      #end # def addExtendedDataToRevision
+    
+      # Description: Checkin a new model by sending a serialized form
+      # Returns: An id, which you can use for the getCheckinState method
       def checkin(ifc_file, projectOid)
         #if @token
           file = File.new(ifc_file, "r")
@@ -84,21 +175,17 @@ module OpenSourceBIM
           
           message_hash =
           {
-            "token" => @token,
-            "request" => 
+            "interface" => "Bimsie1ServiceInterface",
+            "method" => "checkin",
+            "parameters" =>
             {
-              "interface" => "Bimsie1ServiceInterface",
-              "method" => "checkin",
-              "parameters" =>
-              {
-                "poid"=> projectOid,
-                "comment"=> "",
-                "deserializerOid"=> deserializerOid,
-                "fileSize"=> file_size,
-                "fileName"=> file_name,
-                "data"=> file_base64,
-                "sync"=> "false"
-              }
+              "poid"=> projectOid,
+              "comment"=> "",
+              "deserializerOid"=> deserializerOid,
+              "fileSize"=> file_size,
+              "fileName"=> file_name,
+              "data"=> file_base64,
+              "sync"=> "false"
             }
           }
           return request(message_hash)
@@ -109,215 +196,134 @@ module OpenSourceBIM
         
       end # def checkin
     
-      # retreive a hash with all active deserialisers
+      # Returns: A list of all available deserializers
       def getAllDeserializers
-        
         message_hash =
         {
-          "token" => @token,
-          "request" => 
+          "interface"=> "PluginInterface", 
+          "method"=> "getAllDeserializers", 
+          "parameters"=>
           {
-            "interface"=> "PluginInterface", 
-            "method"=> "getAllDeserializers", 
-            "parameters"=>
-            {
-              "onlyEnabled"=> "true"
-            }
+            "onlyEnabled"=> "true"
           }
         }
-        
         return request(message_hash)
       end # def getAllDeserializers
       
-      # get the oid for the requested deserializer name
-      def get_deserializerOid(deserializer_name)
-        getAllDeserializers.each do |deserializer|
-          if deserializer["name"] == deserializer_name
-            return deserializer["oid"]
-          end
-        end
-      end # def get_deserializerOid
-      
-      # Get checkin progress based on topicId returned by checkin request
-      def getProgress( topicId )
-        
+      # Returns: ExtendedData
+      def getAllExtendedDataOfRevision( roid )
         message_hash =
         {
-          "token" => @token,
-          "request" => 
+          "interface" => "Bimsie1ServiceInterface",
+          "method" => "getAllExtendedDataOfRevision",
+          "parameters" =>
           {
-            "interface" => "Bimsie1NotificationRegistryInterface",
-            "method" => "getProgress",
-            "parameters" =>
-            {
-              "topicId" => topicId
-            }
+            "roid" => roid
           }
         }
         return request(message_hash)
-      end # def getProgress
+      end # def getAllExtendedDataOfRevision
       
-      def getProjects
-        
+      # Returns: The User that it currently loggedin on this ServiceInterface
+      def getLoggedInUser
         message_hash =
         {
-          "token" => @token,
-          "request" => 
+          "interface" => "AuthInterface",
+          "method" => "getLoggedInUser",
+          "parameters" =>
           {
-            "interface" => "Bimsie1ServiceInterface",
-            "method" => "getAllProjects",
-            "parameters" =>
-            {
-              "onlyTopLevel" => "true",
-              "onlyActive" => "true"
-            }
+          }
+        }
+        return request(message_hash)
+      end # def getLoggedInUser
+      
+      # Get checkin progress based on topicId returned by checkin request
+      def getProgress( topicId )
+        message_hash =
+        {
+          "interface" => "Bimsie1NotificationRegistryInterface",
+          "method" => "getProgress",
+          "parameters" =>
+          {
+            "topicId" => topicId
+          }
+        }
+      return request(message_hash)
+      end # def getProgress
+      
+      # Returns: The Project
+      def getProjectByPoid( poid )
+        message_hash =
+        {
+          "interface" => "Bimsie1ServiceInterface",
+          "method" => "getProjectByPoid",
+          "parameters" =>
+          {
+            "poid" => poid
+          }
+        }
+        return request(message_hash)
+      end # def getProjectByPoid
+      
+      # Description: Get a list of all Projects the user is authorized for
+      # Returns: A list of Projects
+      def getAllProjects
+        message_hash =
+        {
+          "interface" => "Bimsie1ServiceInterface",
+          "method" => "getAllProjects",
+          "parameters" =>
+          {
+            "onlyTopLevel" => "true",
+            "onlyActive" => "true"
           }
         }
         return request(message_hash)
       end # def getProjects
       
-      def getProjectByPoid( poid )
-        
-        message_hash =
-        {
-          "token" => @token,
-          "request" => 
-          {
-            "interface" => "Bimsie1ServiceInterface",
-            "method" => "getProjectByPoid",
-            "parameters" =>
-            {
-              "poid" => poid
-            }
-          }
-        }
-        return request(message_hash)
-      end # def getProjectByPoid 
-      
+      # Returns: The Revision
       def getRevision( roid )
-        
         message_hash =
         {
-          "token" => @token,
-          "request" => 
+          "interface" => "Bimsie1ServiceInterface",
+          "method" => "getRevision",
+          "parameters" =>
           {
-            "interface" => "Bimsie1ServiceInterface",
-            "method" => "getRevision",
-            "parameters" =>
-            {
-              "roid" => roid
-            }
+            "roid" => roid
           }
         }
         return request(message_hash)
-      end # def getRevision 
+      end # def getRevision
       
-      
-      
-      def getUsersProjects( uoid )
-        
-        message_hash =
-        {
-          "token" => @token,
-          "request" => 
-          {
-            "interface" => "ServiceInterface",
-            "method" => "getUsersProjects",
-            "parameters" =>
-            {
-              "uoid" => uoid
-            }
-          }
-        }
-        return request(message_hash)
-      end # def getUsersProjects
-      
-      
+      # Description: Get a User by its UserName (e-mail address) ###typo in official description
+      # Returns: The SUser Object if found, otherwise null
       def getUserByUserName( username )
-        
         message_hash =
         {
-          "token" => @token,
-          "request" => 
-          {
             "interface" => "ServiceInterface",
             "method" => "getUserByUserName",
             "parameters" =>
             {
               "username" => username
             }
-          }
         }
         return request(message_hash)
       end # def getUserByUserName
       
-      
-      def getLoggedInUser
-        
+      # Returns: A list of projects a user has been authorized for
+      def getUsersProjects( uoid )
         message_hash =
         {
-          "token" => @token,
-          "request" => 
+          "interface" => "ServiceInterface",
+          "method" => "getUsersProjects",
+          "parameters" =>
           {
-            "interface" => "AuthInterface",
-            "method" => "getLoggedInUser",
-            "parameters" =>
-            {
-            }
+            "uoid" => uoid
           }
         }
         return request(message_hash)
-      end # def getLoggedInUser
+      end # def getUsersProjects
       
-      
-      
-      def getProgress( topicId )
-        
-        message_hash =
-        {
-          "token" => @token,
-          "request" => 
-          {
-            "interface" => "Bimsie1NotificationRegistryInterface",
-            "method" => "getProgress",
-            "parameters" =>
-            {
-              "topicId" => topicId
-            }
-          }
-        }
-        return request(message_hash)
-      end # def getProgress
-      
-      
-      
-      
-      # get the oid for the requested project name
-      def get_projectOid(project_name)
-        getProjects.each do |project|
-          if project["name"] == project_name
-            return project["oid"]
-          end
-        end
-      end # def get_projectOid
-    
-      # send message to BIMserver and get response
-      def request(message_hash)
-        #puts JSON.pretty_generate(message_hash)
-        message_json = JSON.generate(message_hash)
-        response_json = @http_connection.post(@server.path, message_json)
-        response = JSON.parse (response_json.body)
-        #puts JSON.pretty_generate(response)
-        
-        #check if a result was found
-        if response["response"]["result"]
-          result = response["response"]["result"]
-          return result
-        else
-          raise StandardError, response["response"]["exception"]["message"]
-          return false
-        end
-      end # def request
     end # class BIMserver_connection
   end # BIMserver
 end # module OpenSourceBIM
