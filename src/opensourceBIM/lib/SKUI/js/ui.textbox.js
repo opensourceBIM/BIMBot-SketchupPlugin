@@ -21,6 +21,8 @@ Textbox.add = function( properties ) {
   $control.addClass('control control-textbox');
   if ( properties.multiline ) {
     var $textbox = $('<textarea/>');
+  } else if ( properties.password ) {
+    var $textbox = $('<input type="password" />');
   } else {
     var $textbox = $('<input type="text" />');
   }
@@ -51,3 +53,10 @@ Textbox.prototype.set_value = function( value ) {
   $textbox.val( value );
   return value;
 };
+
+Textbox.prototype.set_readonly = function( value ) {
+  $textbox = this.control.children('input,textarea');
+  $textbox.prop( 'readonly', value );
+  return value;
+};
+

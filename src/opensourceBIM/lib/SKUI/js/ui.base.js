@@ -60,6 +60,15 @@ Base.prototype.set_background_color = function( value ) {
   return value;
 };
 
+Base.prototype.set_background_image = function( value ) {
+  if ( $.type( value ) == 'string' ) {
+    this.control.css( 'background-image', 'url("' + value + '")' );
+  } else {
+    this.control.css( value );
+  }
+  return value;
+};
+
 Base.prototype.set_foreground_color = function( value ) {
   if ( value instanceof Color ) {
     // IE8 Fallback due to lack of RGBa support.

@@ -82,3 +82,4 @@ $RECYCLE.BIN/
 
 # Project specific
 /src/opensourceBIM/tools/firebug-lite/*
+*.cfg
