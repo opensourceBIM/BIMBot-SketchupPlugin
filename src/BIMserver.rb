@@ -33,7 +33,7 @@ module OpenSourceBIM
     PLUGIN_IMAGE_PATH = File.join(PLUGIN_PATH, 'images')
   
     bimserver_extension = SketchupExtension.new("BIMserver", File.join(PLUGIN_PATH, 'loader.rb'))
-    bimserver_extension.version = '0.2'
+    bimserver_extension.version = '0.3'
     bimserver_extension.description = 'SketchUp client for BIMserver.'
     Sketchup.register_extension(bimserver_extension, true)
   end # module OpenSourceBIM
