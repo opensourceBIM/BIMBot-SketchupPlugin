@@ -36,7 +36,6 @@ module OpenSourceBIM
     load File.join(AUTHOR_PATH, 'lib', 'ui.rb')
     
     # BIMserver toolbar command
-    
     cmd = UI::Command.new("BIMserver") {
       window = BIMserverWindow.new()
     }
@@ -73,41 +72,50 @@ module OpenSourceBIM
           :preferences_key => 'BIMserver',
           :width           => 243,
           :height          => 400,
-          :resizable       => true
+          :resizable       => true,
+          :theme           => File.join( PLUGIN_PATH_CSS, 'theme.css' ).freeze
         }
         
         @window = SKUI::Window.new(options)
+        
+        # empty projectlist hash
+        @list = Hash.new
+        
+        # logo
+        #img_logo = SKUI::Image.new( File.join(PLUGIN_PATH_IMAGE, 'osbim-logo-64.png') )
+        #img_logo.top = 5
+        #img_logo.right = 10
+        #img_logo.width = 32
+        #@window.add_control( img_logo )
 
         # add groupbox for log
         group_log = SKUI::Groupbox.new( 'Connection log' )
-        group_log.position( 5, 5 )
+        group_log.position( 5, 21 )
         group_log.right = 5
-        group_log.height = 200
+        group_log.height = 195
         @window.add_control( group_log )
         
         # add log window
         @log = SKUI::Textbox.new(  )
         @log.multiline = true
         @log.readonly = true
-        @log.name = :txt_name
         @log.position( 10, 20 )
-        @log.height = 158
+        @log.height = 153
         @log.right = 10 # (!) Currently ignored by browser.
         @log.background_color = Sketchup::Color.new( 84, 84, 84 )
         group_log.add_control( @log )
 
         # add groupbox for server settings
         group_server = SKUI::Groupbox.new( 'Server connection' )
-        group_server.position( 5, 205 )
+        group_server.position( 5, 217 )
         group_server.right = 5
-        group_server.height = 176
+        group_server.height = 167
         @window.add_control( group_server )
         
         # add server address input box
         txt_address = SKUI::Textbox.new( server )
-        txt_address.name = :txt_name
         txt_address.position( 70, 20 )
-        txt_address.right = 10 # (!) Currently ignored by browser.
+        txt_address.right = 10
         group_server.add_control( txt_address )
         
         lbl_address = SKUI::Label.new( 'Address:', txt_address )
@@ -117,9 +125,8 @@ module OpenSourceBIM
         
         # add server port number input box
         txt_port = SKUI::Textbox.new( port )
-        txt_port.name = :txt_name
         txt_port.position( 70, 45 )
-        txt_port.right = 10 # (!) Currently ignored by browser.
+        txt_port.right = 10
         group_server.add_control( txt_port )
         
         lbl_port = SKUI::Label.new( 'Port:', txt_port )
@@ -129,9 +136,8 @@ module OpenSourceBIM
         
         # add username input box
         txt_user = SKUI::Textbox.new( user )
-        txt_user.name = :txt_name
         txt_user.position( 70, 70 )
-        txt_user.right = 10 # (!) Currently ignored by browser.
+        txt_user.right = 10
         group_server.add_control( txt_user )
         
         lbl_user = SKUI::Label.new( 'Username:', txt_user )
@@ -141,10 +147,9 @@ module OpenSourceBIM
         
         # add password input box
         txt_password = SKUI::Textbox.new( password )
-        txt_password.name = :txt_name
         txt_password.password = true
         txt_password.position( 70, 95 )
-        txt_password.right = 10 # (!) Currently ignored by browser.
+        txt_password.right = 10
         group_server.add_control( txt_password )
         
         lbl_password = SKUI::Label.new( 'Password:', txt_password )
@@ -157,21 +162,24 @@ module OpenSourceBIM
         
         # add login button
         btn_conn = SKUI::Button.new( 'Connect' ) { |control|
-          name = control.window[:txt_name].value
           
           # create connection object that connects to the server
-          @conn = OpenSourceBIM::BIMserverAPI::Connection.new( txt_address.value, txt_port.value )
-          log ('Connected to BIMserver at ' + txt_address.value)
+          begin
+            @conn = OpenSourceBIM::BIMserverAPI::Connection.new( txt_address.value, txt_port.value )
+          rescue Exception => err
+            log "Error: #{err}"
+          end
           
           # login on the server (internally defines a token that is automatically passed to all other methods to verify the user)
-          if @conn.login( txt_user.value, txt_password.value )
+          begin
+            @conn.login( txt_user.value, txt_password.value )
+            log ('Connected to BIMserver at ' + txt_address.value)
             log ('Logged in as ' + txt_user.value)
+            
             # Create checkin section
             checkin_section = show_checkin()
-          else
+          rescue Exception => err
             log "Error connecting to BIMserver: #{err}"
-            #lbl_conn.caption = "Error connecting to BIMserver: #{err}"
-            #lbl_conn.visible = true
             
             # Delete checkin section if it exists
             unless checkin_section.nil?
@@ -182,31 +190,9 @@ module OpenSourceBIM
               #checkin_section.visible = false
             end
           end
-          # make connection with BIMserver
-          #begin
-            #@conn = BIMserver_connection.new(txt_address.value, txt_port.value, txt_user.value, txt_password.value)
-            #log ('Connected to BIMserver at ' + txt_address.value)
-            ##lbl_conn.caption = 'Connected to BIMserver'
-            ##lbl_conn.visible = true
-            
-            ## Create checkin section
-            #checkin_section = show_checkin(@conn)
-          #rescue => err
-            #log "Error connecting to BIMserver: #{err}"
-            ##lbl_conn.caption = "Error connecting to BIMserver: #{err}"
-            ##lbl_conn.visible = true
-            
-            ## Delete checkin section if it exists
-            #unless checkin_section.nil?
-              #@window.remove_control(checkin_section)
-              ## The other controls are not deleted, but overwritten along the way on a succesful login
-              
-              ## instead of removing, it could also be hidden and later overwritten, don't know which is best here...
-              ##checkin_section.visible = false
-            #end
-          #end
         }
         btn_conn.position( 70, 122 )
+        btn_conn.width = 150
         btn_conn.tooltip = 'Connect to BIMserver'
         group_server.add_control( btn_conn )
         
@@ -225,120 +211,124 @@ module OpenSourceBIM
         # Get list of projects
         list = Array.new
         @conn.service_interface.getUsersProjects( uoid ).each do |project|
-          list << project["name"]
+          
+          # if project is subproject: change formatting
+          if project["parentId"] == -1
+            @list[project["name"]] = project["oid"]
+          else
+            parent = @conn.bimsie1_service_interface.getProjectByPoid( project["parentId"] )
+            @list[parent["name"] + ": " + project["name"]] = project["oid"]
+          end
         end
 
         # add groupbox for model checkin
         group_checkin = SKUI::Groupbox.new( 'Model checkin' )
-        group_checkin.position( 5, 368 )
+        group_checkin.position( 5, 386 )
         group_checkin.right = 5
-        group_checkin.height = 104
+        group_checkin.height = 90
         @window.add_control( group_checkin )
 
         # Create listbox containing projects
-        lst_dropdown = SKUI::Listbox.new( list )
+        lst_dropdown = SKUI::Listbox.new( @list.keys )
         lst_dropdown.value = lst_dropdown.items.first
-        lst_dropdown.position( 70, 18 )
+        lst_dropdown.position( 70, 20 )
         lst_dropdown.right = 10
         group_checkin.add_control( lst_dropdown )
         
         lbl_projects = SKUI::Label.new( 'Project:', lst_dropdown )
-        lbl_projects.position( 10, 21 )
+        lbl_projects.position( 10, 23 )
         lbl_projects.width = 60
         group_checkin.add_control( lbl_projects )
         
-        # add model checkin button
+        # add model checkin button that uploads the model
         btn_checkin = SKUI::Button.new( 'Upload' ) { |control|
         
-          # add model checkin button that uploads the model
-          #begin
-            #??? Is it posible to create projects with duplicate names, is a poid required for selecting a single project ???
-            project_name = lst_dropdown.value
-            project_oid = get_project_oid(project_name)
-            ifc = BIMserver.IfcWrite
-            topicId = checkin(ifc, project_oid)
-            
-            progress = 0
-            start_time = Time.now
-            
-            log ('Model upload succesful.')
-            
-            until progress == 100
+          project_name = lst_dropdown.value
+          project_oid = @list[ project_name ]
+          ifc = BIMserver.IfcWrite
+          topicId = checkin(ifc, project_oid)
+          
+          progress = 0
+          now = Time.now
+          counter = 1
+          loop do
+            if Time.now < now + counter
+              next
+            else
+              
+              # get current processing status
               progress = @conn.bimsie1_notificationRegistry_interface.getProgress( topicId )["progress"]
               
-              # raise error if processing takes too long
-              raise if Time.now - start_time > 10
-              
-              # Progress -1%??? 
-              unless progress == -1
+              unless progress == -1 # progress -1 means not ready 
                 log ('Processing revision: ' + progress.to_s + '%')
               end
-              
-              
+              break if progress >= 100
             end
-              
-            # get the id of the last revision
+            counter += 1
+            break if counter > 10 # maximum wait is 10 seconds
+          end
+            
+          # get the id of the last revision
+          begin
             roid = @conn.bimsie1_service_interface.getProjectByPoid( project_oid )['lastRevisionId']
-            #log ('New revision id: ' + roid.to_s)
-              
-            # get revision number
-            revision = @conn.bimsie1_service_interface.getRevision( roid )['id']
-            log ('New revision #' + revision.to_s + ' (' + roid.to_s + ') created for project ' + project_name + ' (' + project_oid.to_s + ')')
+          rescue Exception => error
+            log error
+          end
             
+          # get revision number
+          revision = @conn.bimsie1_service_interface.getRevision( roid )['id']
+          log ('New revision #' + revision.to_s + ' (' + roid.to_s + ') created for project ' + project_name + ' (' + project_oid.to_s + ')')
+          
+          $i = 0
+          $num = 4
+          
+          while $i < $num  do
             
-            $i = 0
-            $num = 4
+            # show extended data for revision
+            @conn.bimsie1_service_interface.getAllExtendedDataOfRevision( roid ).each do | extended_data |
             
-            while $i < $num  do
+              # create container array if it does not exists
+              unless @extended_data_list
+                @extended_data_list = Array.new
+      
+                # add groupbox for extended data
+                @group_ext_data = SKUI::Groupbox.new( 'Extended data' )
+                @group_ext_data.position( 5, 478 )
+                @group_ext_data.right = 5
+                @group_ext_data.height = 176
+                @window.add_control( @group_ext_data )
+              end
               
-              # show extended data for revision
-              @conn.bimsie1_service_interface.getAllExtendedDataOfRevision( roid ).each do | extended_data |
-              
-                # create container array if it does not exists
-                unless @extended_data_list
-                  @extended_data_list = Array.new
-        
-                  # add groupbox for extended data
-                  @group_ext_data = SKUI::Groupbox.new( 'Extended data' )
-                  @group_ext_data.position( 5, 472 )
-                  @group_ext_data.right = 5
-                  @group_ext_data.height = 176
-                  @window.add_control( @group_ext_data )
-                end
+              # add extended_data to array if it's not already there
+              unless @extended_data_list.include?( extended_data['oid'] )
+                log('Extended data found: ' + extended_data['title'])
+                @extended_data_list << extended_data['oid']
                 
-                # add extended_data to array if it's not already there
-                unless @extended_data_list.include?( extended_data['oid'] )
-                  log('Extended data found: ' + extended_data['title'])
-                  @extended_data_list << extended_data['oid']
-                  
-                  # add extended data button
-                  btn_ext_data = SKUI::Button.new( extended_data['title'] ) { |control|
-                  
-                  
-                    file_id = extended_data['fileId']
-                    html = Base64.decode64( @conn.service_interface.getFile( file_id )['data'] )
+                # add extended data button
+                btn_ext_data = SKUI::Button.new( extended_data['title'] ) { |control|
+                  file_id = extended_data['fileId']
+                  html = Base64.decode64( @conn.service_interface.getFile( file_id )['data'] )
+
+                  if html.include? "<html" # probably html
                     dlg = UI::WebDialog.new("Extended data", true, "ExtendedData", 739, 641, 150, 150, true);
                     dlg.set_html( html )
                     dlg.show
-                  
-                  }
-                  @group_ext_data.add_control( btn_ext_data )
-                end
+                  else
+                    log("Unable to show extended data, not of the type 'html'." )
+                  end
+                }
+                @group_ext_data.add_control( btn_ext_data )
+                btn_ext_data.position( 70, 20 )
+                btn_ext_data.width = 150
               end
-              
-              sleep 0.5
-              $i +=1
             end
             
-            
-            
-          #rescue => err
-          #  log "Error uploading to BIMserver: #{err}"
-          #  #lbl_checkin.caption = "Error uploading to BIMserver: #{err}"
-          #  #lbl_checkin.visible = true
-          #end
+            sleep 0.5
+            $i +=1
+          end
         }
-        btn_checkin.position( 70, 50 )
+        btn_checkin.position( 70, 45 )
+        btn_checkin.width = 150
         btn_checkin.tooltip = 'Check in current model'
         group_checkin.add_control( btn_checkin )
         return group_checkin
@@ -360,14 +350,14 @@ module OpenSourceBIM
         fileName = Sketchup.active_model.title + ".ifc"
         data = Base64.encode64(file_contents)
         sync = "false"
-        
-        return @conn.bimsie1_service_interface.checkin( poid, comment, deserializerOid, fileSize, fileName, data, sync)
-        
-        #else
-        #  log("Unable to checkin model, not logged in on BIMserver")
-        #end
-        
-      end # def checkin
+        begin
+          id = @conn.bimsie1_service_interface.checkin( poid, comment, deserializerOid, fileSize, fileName, data, sync)
+          log ('Model upload succesful.')
+          id
+        rescue Exception => err
+          log "Error during upload: #{err}"
+        end
+      end
       
       # get the oid for the requested deserializer name
       def get_deserializerOid(deserializer_name)
@@ -376,20 +366,28 @@ module OpenSourceBIM
             return deserializer["oid"]
           end
         end
+        
+        # if not found, raise error
+        raise "No deserializer found with name '" + deserializer_name + "'."
       end # def get_deserializerOid
-            
+      
       # get the oid for the requested project name
       def get_project_oid(project_name)
-        @conn.bimsie1_service_interface.getAllProjects( true, true ).each do |project|
+        
+        # compare project_name against all projects on the server, return oid when found
+        @conn.bimsie1_service_interface.getAllProjects( false, true ).each do |project|
           if project["name"] == project_name
             return project["oid"]
           end
         end
-      end # def get_projectOid
+        
+        # if not found, raise error
+        raise "No project found with name '" + project_name + "'."
+      end
       
+      # add string to the log window
       def log( response )
-        @log.value += Time.now.to_s + ': ' + response + "\n"
-        puts response
+        @log.value += Time.now.strftime("%I:%M:%S") + ': ' + response + "\n"
       end # def log
     end # class BIMserverWindow    
   end # module BIMserver
