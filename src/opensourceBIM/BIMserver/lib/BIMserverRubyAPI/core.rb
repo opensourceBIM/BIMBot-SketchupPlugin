@@ -96,7 +96,9 @@ module OpenSourceBIM
     #include Bimsie1NotificationRegistryInterface
 
     def initialize(server, port)
-    
+      
+      raise ArgumentError, 'Given value for "Adress" is not a valid URL' unless URI.parse(server).kind_of?(URI::HTTP)
+      raise ArgumentError, 'Given value for "Port" is not a valid port number' if port.to_i == 0
 
       @service_interface                      = Interface.new( self, "ServiceInterface" )
       @admin_interface                        = Interface.new( self, "AdminInterface" )
@@ -110,7 +112,6 @@ module OpenSourceBIM
       @bimsie1_auth_interface                 = Interface.new( self, "Bimsie1AuthInterface" )
       @bimsie1_lowLevel_interface             = Interface.new( self, "Bimsie1LowLevelInterface" )
       @bimsie1_notificationRegistry_interface = Interface.new( self, "Bimsie1NotificationRegistryInterface" )
-    
       
       # BIMserver parameters
       @server = URI(server + ":" + port + "/json")
