@@ -57,7 +57,7 @@ module OpenSourceBIM
       }
       
       response_json = @http_connection.post(@server.path, JSON.generate(call))
-      response = JSON.parse (response_json.body)
+      response = JSON.parse(response_json.body)
       
       #check if a result was found
       if response["response"]["result"]

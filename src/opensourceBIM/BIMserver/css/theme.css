@@ -1,43 +1,139 @@
-
-
-
-/*******************************************************************************
- *
- * $BUTTON
- *
- ******************************************************************************/
-
-/* undo button padding for the embedded image */
-.control-button img
-{
-  position: absolute;
-  left: 0;
-  top: 0;
+html {
+	height: 100%;
+	background-color: rgb(240, 240, 240);
 }
 
+body {
+	font-family: Tahoma, Verdana, Arial, Helvetica, sans-serif;
+	font-size: 62.5%;
+	width: 259px;
+	margin: 0.1em;
+	padding: 0;
+}
 
-fieldset { 
-  position:relative;
-  height: 200px;
-  margin: 0;
-  padding: 0.5em;
-  border-width: 0;
-  border-bottom: 1px solid #a0a0a0;
+hr {
+	clear: both;
+	margin: 0;
+	padding: 0;
+	height: 0;
+	border: 0;
+	border-bottom: 1px solid #a0a0a0;
 }
-legend
-{
-    top:0px;
-    left:0.5em;
-    position:absolute;
-    font-weight:bold;
+
+img {
+	vertical-align: middle;
+	margin-right: 6px;
+	border: 0;
 }
-input[readonly] { 
-    background-color: transparent;
+
+a {
+	color: #000000;
+	text-decoration: none;
+}
+
+form {
+	margin: 0;
+	padding: 0;
+}
+
+label {
+	float: left;
+	clear: left;
+	width: 5em;
+	height: 2.4em;
+	margin: 0.2em;
+	margin-top: 0.3em;
+	margin-left: 1em;
+}
+
+a {
+	position: relative;
+	top: 50%;
+	transform: translateY(-50%);
+}
+
+input, textarea, select, button {
+	position: relative;
+	float: right;
+	font-size: 1em;
+	width: 12em;
+	height: 2em;
+	margin: 0.2em;
+	margin-right: 0.1em;
+}
+
+button {
+	float: right;
+	margin: 0.2em;
+  margin-left: 0.3em;
+  margin-right: 0.1em;
+}
+
+select {
+	width: 12.4em;
+	height: 2.4em;
+}
+
+input[readonly] {
+	background-color: transparent;
+	float: left;
+	border: 0;
+	font-size: 1em;
+  width: 238px;
+  margin-left: 1em;
+}
+
+textarea[readonly] {
+  background-color: transparent;
+  float: left;
+  border: 0;
+  font-size: 1em;
+  width: 238px;
+  height: 6em;
+  margin-left: 1em;
+}
+
+form #submit {
+	font-size: 1em;
+	height: 22px;
+	width: 90%;
+	margin: 0.4em 5% 0.4em 5%;
+}
+
+ul {
+	width: 100%;
+	margin: 0;
+	padding: 4px;
+	list-style-type: none;
+}
+
+li {
+	margin: 0;
+	padding: 0;
+	float: left;
+}
+
+fieldset {
+  width: 254px;
+	position: relative;
+	margin: 0em 0;
+	padding: 0.2em;
+	border-width: 0;
+	border-top: 1px solid #a0a0a0;
+}
+
+.control-groupbox legend {
+	font-weight: bold;
+	position: absolute;
+	top: -2em;
+	margin: 0 0.6em;
+	padding: 0;
 }
 .icon {
+  position: relative;
+  float:right;
   background-color: transparent;
   background-repeat: no-repeat;
   border-width: 0;
-  top:0;
-  left:0;
+  right:0;
 }

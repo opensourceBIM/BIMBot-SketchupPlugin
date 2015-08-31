@@ -36,5 +36,5 @@ module OpenSourceBIM
     bimserver_extension.version = '0.3'
     bimserver_extension.description = 'SketchUp client for BIMserver.'
     Sketchup.register_extension(bimserver_extension, true)
-  end # module OpenSourceBIM
-end # module Brewsky
+  end # module BIMserver
+end # module OpenSourceBIM

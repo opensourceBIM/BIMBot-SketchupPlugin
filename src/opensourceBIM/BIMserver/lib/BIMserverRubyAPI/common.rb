@@ -56,7 +56,7 @@ module OpenSourceBIM
     
       request_json = JSON.generate(call)
       response_json = @conn.http_connection.post(@conn.server.path, request_json)
-      response = JSON.parse (response_json.body)
+      response = JSON.parse(response_json.body)
       
       # Raise error if exception is found
       raise response['response']['exception']['__type'] + ": " + response['response']['exception']['message'] if response['response']['exception']
