@@ -75,13 +75,6 @@ module OpenSourceBIM
             project_oid = profile.project_oid
             project_name = profile.project
               
-            
-            # Project info
-            project_info = SKUI::Textbox.new( project_text )
-            project_info.readonly = true
-            project_info.multiline = true
-            @group.add_control( project_info )
-              
 
             # get the current project
             begin
@@ -100,6 +93,13 @@ module OpenSourceBIM
             project_text << "Name: " + project['name'].to_s << "\n"
             project_text << "Description: " + project['description'].to_s << "\n"
             project_text << "Revision Id: " + revision['id'].to_s << "\n"
+              
+            
+            # Project info
+            project_info = SKUI::Textbox.new( project_text )
+            project_info.readonly = true
+            project_info.multiline = true
+            @group.add_control( project_info )
             
           rescue Exception => err
             puts "Error connecting to BIMserver: #{err}"
@@ -126,9 +126,6 @@ module OpenSourceBIM
 
               #@revision.clear()
               @revisionlist.clear()
-
-              # activate toolbar buttons
-              BIMserver.activate_tools
               
               # get the id of the last revision
               begin

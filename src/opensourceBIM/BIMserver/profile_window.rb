@@ -22,6 +22,7 @@
 module OpenSourceBIM
   module BIMserver
 
+    require File.join( PLUGIN_PATH, 'profile.rb' )
     require File.join( PLUGIN_PATH, 'menu_section.rb' )
 
     class ProfileWindow
@@ -116,8 +117,6 @@ module OpenSourceBIM
               @conn.login( profile.username, profile.password )
               #puts ('Connected to BIMserver at ' + address.value)
               puts ('Logged in as ' + profile.username)
-              
-              OpenSourceBIM::BIMserver.activate_tools
 
               # Get user id
               uoid = @conn.auth_interface.getLoggedInUser["oid"]
@@ -185,6 +184,7 @@ module OpenSourceBIM
       end
 
       def toggle
+        @serverlist.value = BIMserver.profiles.active_profile.name
         @window.toggle
       end
 

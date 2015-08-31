@@ -53,6 +53,12 @@ module OpenSourceBIM
         @profile = SKUI::Textbox.new( 'Active profile: ' + BIMserver.profiles.active_profile.name )
         @profile.readonly = true
         @group.add_control( @profile )
+        
+        #image = File.join(PLUGIN_PATH_IMAGE, 'waiting.gif')
+        #waiting = SKUI::Image.new( image )
+        #waiting.position( 100, 0 )
+        #@group.add_control( waiting )
+        
 
         # Control: status line
         @status = SKUI::Textbox.new( "" )

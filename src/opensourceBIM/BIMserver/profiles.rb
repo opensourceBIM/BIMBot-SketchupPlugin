@@ -26,9 +26,10 @@ require 'digest'
 
 module OpenSourceBIM
   module BIMserver
-    
+
     require File.join( PLUGIN_PATH, 'profile.rb' )
-    
+    require File.join( PLUGIN_PATH, 'connection.rb' )
+
     class Profiles
       def initialize()
         @profiles = Hash.new()
@@ -52,17 +53,30 @@ module OpenSourceBIM
         write_config
       end
 
-      def set_active_profile( name=nil )
-        if name.nil?
-            @active_profile = @profiles.values[0]
+      def set_connection( profile )
+        if $conn.nil?
+          $conn = BIMserver::Connection.new( profile )
+        elsif $conn.profile == BIMserver.profiles.active_profile
+          return $conn
         else
-          @active_profile = @profiles[ name ]
+          $conn = BIMserver::Connection.new( profile )
         end
-        
+      end
+
+      def set_active_profile( name=nil )
+
+        if @profiles[ name ]
+          @active_profile = @profiles[ name ]
+        elsif @active_profile.nil?
+          @active_profile = @profiles.values.first
+        end
+
+        set_connection( @active_profile )
+
         # store default profile md5 hash inside SketchUp model
-        #md5 = Digest::MD5.new
-        #md5.update @active_profile.to_hash.to_s
-        #Sketchup.write_default "opensourceBIM", "BIMserver_profile", md5.to_s
+        md5 = Digest::MD5.new
+        md5.update @active_profile.to_hash.to_s
+        Sketchup.active_model.set_attribute( 'OpenSourceBIM', 'BIMserver_profile', md5.to_s )
       end
 
       def names
@@ -89,13 +103,12 @@ module OpenSourceBIM
         end
 
         # get profile stored inside SketchUp
-        # Sketchup.write_default "opensourceBIM", "BIMserver_profile", "test"
-        stored = Sketchup.read_default('opensourceBIM',  'BIMserver_profile')
+        stored = Sketchup.active_model.get_attribute( 'OpenSourceBIM', 'BIMserver_profile', "" )
         @profiles.each do | key, value |
           md5 = Digest::MD5.new
           md5.update value.to_hash.to_s
           if md5 == stored
-            set_active_profile( value )
+            set_active_profile( value.name )
           end
         end
         if @active_profile.nil?

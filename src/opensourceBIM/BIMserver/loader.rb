@@ -25,8 +25,9 @@ require 'sketchup'
 
 module OpenSourceBIM
   module BIMserver
-    attr_reader :profiles, :btn_upload
     extend self
+    attr_reader :profiles, :conn, :btn_upload, :btn_project
+    attr_accessor :buttons_enabled
 
     PLUGIN_PATH_IMAGE = File.join(PLUGIN_PATH, 'images')
     PLUGIN_PATH_CSS   = File.join(PLUGIN_PATH, 'css')
@@ -35,26 +36,30 @@ module OpenSourceBIM
     load File.join( AUTHOR_PATH, 'lib', 'SKUI', 'embed_skui.rb' )
     ::SKUI.embed_in( self )
 
+    @conn = nil
+    @buttons_enabled = false
+
     require File.join( PLUGIN_PATH, 'lib', 'BIMserverRubyAPI', 'core.rb' )
-    require File.join( PLUGIN_PATH, 'profile.rb' )
     require File.join( PLUGIN_PATH, 'profiles.rb' )
     require File.join( PLUGIN_PATH, 'upload_window.rb' )
     require File.join( PLUGIN_PATH, 'project_window.rb' )
     require File.join( PLUGIN_PATH, 'profile_window.rb' )
 
-    @profiles = Profiles.new()
-    @profile_window = ProfileWindow.new()
-
-    # add BIMserver tool to toolbar
     # Load common ui elements
     require File.join(AUTHOR_PATH, 'lib', 'ui.rb')
 
+    @profiles = Profiles.new()
+    @profile_window = ProfileWindow.new()
+
+    # add BIMserver tools to toolbar
     # Upload button
     @btn_upload = UI::Command.new('upload model') {
 
       # close old upload window and create new
       if @upload_window
-        @upload_window.window.close
+        if @upload_window.window
+          @upload_window.window.close
+        end
       end
       @upload_window = UploadWindow.new()
       # first upload
@@ -65,7 +70,11 @@ module OpenSourceBIM
     @btn_upload.tooltip = "Upload model to BIMserver"
     @btn_upload.status_bar_text = "Upload current model to selected BIMserver"
     @btn_upload.set_validation_proc {
-      MF_GRAYED
+      if @buttons_enabled == true
+        MF_ENABLED
+      else
+        MF_GRAYED
+      end
     }
     OpenSourceBIM::OsBimUI.add_item( @btn_upload )
 
@@ -83,7 +92,11 @@ module OpenSourceBIM
     @btn_project.tooltip = "Show project info"
     @btn_project.status_bar_text = "Show project and extended data on BIMserver"
     @btn_project.set_validation_proc {
-      MF_GRAYED
+      if @buttons_enabled == true
+        MF_ENABLED
+      else
+        MF_GRAYED
+      end
     }
     OpenSourceBIM::OsBimUI.add_item( @btn_project )
 
@@ -96,132 +109,5 @@ module OpenSourceBIM
     cmd.tooltip = "Manage profiles"
     cmd.status_bar_text = "Select and edit BIMserver profiles"
     OpenSourceBIM::OsBimUI.add_item( cmd )
-
-    # change toolbar button status
-    def activate_tools()
-      @btn_upload.set_validation_proc {
-      #    @btn_upload.status_bar_text = "3r53fegesge"
-          MF_ENABLED
-      }
-      @btn_project.set_validation_proc {
-          MF_ENABLED
-      }
-    end
-
-    def conn()
-      if $conn
-        if $conn.profile == BIMserver.profiles.active_profile
-          return $conn
-        end
-      else
-        $conn = Connection.new()
-      end
-    end
-
-    class Connection
-      attr_reader :profile
-      def initialize( profile )
-        @profile = profile
-        # create connection object that connects to the server
-        begin
-
-          @conn = OpenSourceBIM::BIMserverAPI::Connection.new( profile.address, profile.port )
-          set_status('Connected to BIMserver at ' + profile.address)
-
-          # login on the server
-          begin
-            @conn.login( profile.username, profile.password )
-            #puts ('Connected to BIMserver at ' + address.value)
-            #puts ('Logged in as ' + profile.username)
-            set_status('Logged in as ' + profile.username)
-
-            # Get user id
-            uoid = @conn.auth_interface.getLoggedInUser["oid"]
-          rescue Exception => err
-            set_status("Error connecting to BIMserver: #{err}")
-          end
-        rescue Exception => err
-          set_status("Error: #{err}")
-        end
-      end
-    end
-
-    #    class Connection < OpenSourceBIM::BIMserverAPI::Connection
-    #      attr_reader :status
-    #      def initialize( profile )
-
-    #        # create connection object that connects to the server
-    #        begin
-    #          @conn = OpenSourceBIM::BIMserverAPI::Connection.new( profile.address, profile.port )
-    #        rescue Exception => err
-    #          @status = "Error: #{err}"
-    #        end
-
-    #        # login on the server
-    #        begin
-    #          @conn.login( profile.username, profile.password )
-    #          #puts ('Connected to BIMserver at ' + address.value)
-    #          @status = ('Logged in as ' + profile.username)
-    #        rescue Exception => err
-    #          @status = "Error connecting to BIMserver: #{err}"
-    #        end
-    #      end
-    #    end # Class Connection
-
-    # dialog window for BIMserver connection
-    class BIMserverWindow
-      attr_reader :window, :profiles
-      def initialize()
-
-        # load default config values
-        #require File.join(PLUGIN_PATH, 'config.rb')
-        #server_config = BIMserver_config.new("BIMserver.cfg")
-
-        # BIMserver parameters
-        #server = server_config.get("address")
-        #port = server_config.get("port")
-        #user = server_config.get("username")
-        #password = server_config.get("password")
-        #project = server_config.get("project")
-
-        # create menu window
-        options = {
-          :title           => 'BIMserver connector',
-          :preferences_key => 'BIMserver',
-          :width           => 267,
-          :height          => 600,
-          :resizable       => false,
-          :theme           => File.join( PLUGIN_PATH_CSS, 'theme.css' ).freeze
-        }
-        @window = SKUI::Window.new(options)
-        @profiles = Profiles.new()
-
-        # empty projectlist hash
-        @list = Hash.new
-
-        # Menu section: connection/profile
-        @sec_connection = ConnectionSection.new('Connection', self)
-
-        @sec_revisions = RevisionSection.new('Revisions', self)
-        @sec_revisions.minimize
-
-        # Menu section: server
-        @sec_server = ServerSection.new('Manage servers',  self)
-        @sec_server.minimize
-
-        @sec_projects = ProjectSection.new('Manage projects', self)
-        @sec_projects.minimize
-        #@sec_projects = SKUI::Groupbox.new( 'Project' )
-        #@window.add_control( @sec_projects )
-
-        #@sec_revisions = SKUI::Groupbox.new( 'Revision' )
-        #@window.add_control( @sec_revisions )
-
-        @window.show
-
-      end # def initialize
-
-
-    end # class BIMserverWindow
   end # module BIMserver
 end # module OpenSourceBIM
