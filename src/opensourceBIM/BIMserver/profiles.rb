@@ -31,8 +31,14 @@ module OpenSourceBIM
     require File.join( PLUGIN_PATH, 'connection.rb' )
 
     class Profiles
+      attr_reader :conn
       def initialize()
-        @profiles = Hash.new()
+
+        # Set config file
+        pathname = File.expand_path( File.dirname(__FILE__) )
+        @filepath = File.join(pathname, 'config.yml')
+        
+        @profiles = Array.new()
         read_config
       end
 
@@ -44,11 +50,12 @@ module OpenSourceBIM
       end
 
       def get_profile_by_name( name )
-        return @profiles[ name ]
+        profiles = @profiles.select {|profile| profile.name == name }
+        return profiles.first
       end
 
       def delete_profile( profile )
-        @profiles.delete( profile.name )
+        @profiles.delete( profile )
         set_active_profile
         write_config
       end
@@ -64,11 +71,11 @@ module OpenSourceBIM
       end
 
       def set_active_profile( name=nil )
-
-        if @profiles[ name ]
-          @active_profile = @profiles[ name ]
-        elsif @active_profile.nil?
-          @active_profile = @profiles.values.first
+        profile = get_profile_by_name( name )
+        if profile.nil?
+          @active_profile = @profiles.first
+        else
+          @active_profile = profile
         end
 
         set_connection( @active_profile )
@@ -80,13 +87,14 @@ module OpenSourceBIM
       end
 
       def names
-        return @profiles.keys
+        return @profiles.map{|profile| profile.name}
       end
 
       def write_config
-        config = Hash.new
-        @profiles.each_pair do | name, profile |
-          config[ profile.name ] = { :name => profile.name, :address => profile.address, :port => profile.port, :username => profile.username, :password => profile.password, :project => profile.project , :project_oid => profile.project_oid }
+        
+        config = Array.new
+        @profiles.each do | profile |
+          config  << profile.to_hash
         end
         File.open(@filepath, 'w') {|f| f.write config.to_yaml } #Store
       end
@@ -94,17 +102,15 @@ module OpenSourceBIM
       def read_config
 
         # load config file
-        pathname = File.expand_path( File.dirname(__FILE__) )
-        filepath = File.join(pathname, 'config.yml')
-        config = YAML::load_file(filepath)
+        config = YAML::load_file(@filepath)
 
-        config.each_pair do | name, profile |
-          @profiles[ name ] = Profile.new(name, profile[:address], profile[:port], profile[:username], profile[:password], profile[:project], profile[:project_oid])
+        config.each do | profile |
+          add_profile( Profile.new(profile[:name], profile[:address], profile[:port], profile[:username], profile[:password], profile[:project], profile[:project_oid]) )
         end
 
         # get profile stored inside SketchUp
         stored = Sketchup.active_model.get_attribute( 'OpenSourceBIM', 'BIMserver_profile', "" )
-        @profiles.each do | key, value |
+        @profiles.each do | value |
           md5 = Digest::MD5.new
           md5.update value.to_hash.to_s
           if md5 == stored
@@ -117,8 +123,7 @@ module OpenSourceBIM
       end
 
       def add_profile( profile )
-        @profiles[profile.name] = profile
-
+        @profiles << profile
       end
     end # class Profiles
   end # module BIMserver

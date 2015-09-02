@@ -36,13 +36,13 @@ module OpenSourceBIM
       end
       def to_hash
         hash = Hash.new
-        hash[:name] = name
-        hash[:address] = address
-        hash[:port] = port
-        hash[:username] = username
-        hash[:password] = password
-        hash[:project] = project
-        hash[:project_oid] = project_oid
+        hash[:name] = name.to_s
+        hash[:address] = address.to_s
+        hash[:port] = port.to_s
+        hash[:username] = username.to_s
+        hash[:password] = password.to_s
+        hash[:project] = project.to_s
+        hash[:project_oid] = project_oid.to_s
         return hash
       end
       #def to_s

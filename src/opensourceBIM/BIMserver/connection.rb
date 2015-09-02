@@ -28,20 +28,20 @@ module OpenSourceBIM
     class Connection
       attr_reader :profile
       def initialize( profile )
-        puts "connection!"
+        
         @profile = profile
         # create connection object that connects to the server
         begin
 
           @conn = OpenSourceBIM::BIMserverAPI::Connection.new( profile.address, profile.port )
-          puts('Connected to BIMserver at ' + profile.address)
+          BIMserver.set_status( 'Connected to BIMserver at ' + profile.address )
 
           # login on the server
           begin
             @conn.login( profile.username, profile.password )
             #puts ('Connected to BIMserver at ' + address.value)
             #puts ('Logged in as ' + profile.username)
-            puts('Logged in as ' + profile.username)
+            BIMserver.set_status( 'Logged in as ' + profile.username )
 
             # Get user id
             uoid = @conn.auth_interface.getLoggedInUser["oid"]
@@ -53,14 +53,14 @@ module OpenSourceBIM
             # change toolbar button status
             disable_buttons
             
-            puts("Error connecting to BIMserver: #{err}")
+            BIMserver.set_status( "Error connecting to BIMserver: #{err}" )
           end
         rescue Exception => err
           
           # change toolbar button status
           disable_buttons
           
-          puts("Error: #{err}")
+          BIMserver.set_status( "Error: #{err}" )
         end
       end
       def disable_buttons

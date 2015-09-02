@@ -26,7 +26,8 @@ require 'sketchup'
 module OpenSourceBIM
   module BIMserver
     extend self
-    attr_reader :profiles, :conn, :btn_upload, :btn_project
+    
+    attr_reader :profiles, :conn, :btn_upload, :btn_project, :status
     attr_accessor :buttons_enabled
 
     PLUGIN_PATH_IMAGE = File.join(PLUGIN_PATH, 'images')
@@ -38,6 +39,20 @@ module OpenSourceBIM
 
     @conn = nil
     @buttons_enabled = false
+    
+    def BIMserver.set_status( message )
+      if message.nil?
+        @status == ""
+      else
+        @status = message
+      end
+      if @profile_window
+        @profile_window.update_status()
+      end
+      if @project_window
+        @project_window.update_status()
+      end
+    end
 
     require File.join( PLUGIN_PATH, 'lib', 'BIMserverRubyAPI', 'core.rb' )
     require File.join( PLUGIN_PATH, 'profiles.rb' )
@@ -109,5 +124,6 @@ module OpenSourceBIM
     cmd.tooltip = "Manage profiles"
     cmd.status_bar_text = "Select and edit BIMserver profiles"
     OpenSourceBIM::OsBimUI.add_item( cmd )
+
   end # module BIMserver
 end # module OpenSourceBIM

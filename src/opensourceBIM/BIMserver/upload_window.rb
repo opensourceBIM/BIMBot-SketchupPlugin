@@ -53,12 +53,11 @@ module OpenSourceBIM
         @profile = SKUI::Textbox.new( 'Active profile: ' + BIMserver.profiles.active_profile.name )
         @profile.readonly = true
         @group.add_control( @profile )
-        
+
         #image = File.join(PLUGIN_PATH_IMAGE, 'waiting.gif')
         #waiting = SKUI::Image.new( image )
         #waiting.position( 100, 0 )
         #@group.add_control( waiting )
-        
 
         # Control: status line
         @status = SKUI::Textbox.new( "" )
@@ -67,18 +66,12 @@ module OpenSourceBIM
 
         @status_value = ""
         @ready = false
-        
+
         # check if window is ready
         @window.on( :ready ) {
           @ready = true
           @status.value = @status_value
         }
-        def set_status( value=nil )
-          @status_value = value unless value.nil?
-          if @ready == true
-            @status.value = @status_value
-          end
-        end
 
         # add status line at the bottom
         @group_status.add_control( @status )
@@ -191,14 +184,21 @@ module OpenSourceBIM
             end
 
           rescue Exception => err
-              set_status("Error connecting to BIMserver: #{err}")
+            set_status("Error connecting to BIMserver: #{err}")
           end
         rescue Exception => err
-            set_status("Error: #{err}")
+          set_status("Error: #{err}")
         end
         #}
         #upload.tooltip = 'Upload current model'
         #add_control( upload, @group )
+      end
+
+      def set_status( value=nil )
+        @status_value = value unless value.nil?
+        if @ready == true
+          @status.value = @status_value
+        end
       end
 
       def add_control( control, group, name=nil )

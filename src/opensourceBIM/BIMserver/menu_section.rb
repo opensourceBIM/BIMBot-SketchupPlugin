@@ -28,7 +28,7 @@ module OpenSourceBIM
         @bs_window = window
         @group = SKUI::Groupbox.new( name )
         @maximized = maximized
-
+        
         # add minimize button
         image = File.join(PLUGIN_PATH_IMAGE, 'minimize.png')
         @button = SKUI::Button.new( "" ) { |control|
@@ -42,14 +42,9 @@ module OpenSourceBIM
         @button.width = 22
         @button.height = 24
         @button.css_class( 'icon' )
+        
         @window.add_control( @button )
         @window.add_control( @group )
-        
-        if @maximized == true
-          maximize
-        else
-          minimize
-        end
       end
 
       def minimize
@@ -58,7 +53,7 @@ module OpenSourceBIM
           control.visible = false
           @group.height = 0
         end
-        @button.background_image = File.join(PLUGIN_PATH_IMAGE, 'minimize.png')
+        @button.background_image = File.join(PLUGIN_PATH_IMAGE, 'maximize.png')
       end
 
       def maximize
@@ -70,7 +65,15 @@ module OpenSourceBIM
           id = @group.ui_id
           @window.bridge.call( "$('#" + id + "').css('height', 'auto')" )
         end
-        @button.background_image = File.join(PLUGIN_PATH_IMAGE, 'maximize.png')
+        @button.background_image = File.join(PLUGIN_PATH_IMAGE, 'minimize.png')
+      end
+      
+      def set_size
+        if @maximized == true
+          maximize
+        else
+          minimize
+        end
       end
 
       def add_control( control, name=nil )

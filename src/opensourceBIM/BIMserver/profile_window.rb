@@ -29,9 +29,6 @@ module OpenSourceBIM
       attr_reader :window, :ready
       def initialize()
 
-        # empty projectlist hash
-        @projectlist = Hash.new
-
         options = {
           :title           => 'Profiles',
           :preferences_key => 'BIMserverProfiles',
@@ -41,108 +38,92 @@ module OpenSourceBIM
           :theme           => File.join( PLUGIN_PATH_CSS, 'theme.css' ).freeze
         }
         @window = SKUI::Window.new(options)
+        @project_list = Hash.new
 
-        @base_profile = MenuSection.new( 'Select profile', self)
-        @group = MenuSection.new('Edit server', self, false)
-        @load_projects = MenuSection.new('Select project', self, false)
-        @save_section = MenuSection.new('Edit profile', self, false)
+        @base_profile = MenuSection.new( 'Select profile', self, true)
+        @group = MenuSection.new('Edit profile', self, false)
+        @group_status = MenuSection.new( 'Status', self, true)
+
+        # Control: status line
+        @status = SKUI::Textbox.new( "" )
+        @status.readonly = true
+        @status.multiline = true
+
+        @status_value = ""
+        @ready = false
+
+        # add status line at the bottom
+        @group_status.add_control( @status )
 
         # check if window is ready
         @window.on( :ready ) {
           @ready = true
         }
 
-        profile = BIMserver.profiles.active_profile
+        # Add controls
+        @serverlist = SKUI::Listbox.new( BIMserver.profiles.names )
+        @name = SKUI::Textbox.new()
+        @address = SKUI::Textbox.new()
+        @port = SKUI::Textbox.new()
+        @username = SKUI::Textbox.new()
+        @password = SKUI::Textbox.new()
+
+        set_profile_edit( BIMserver.profiles.active_profile )
 
         # Control: server
-        @serverlist = SKUI::Listbox.new( BIMserver.profiles.names )
-        #@serverlist.value = serverlist.items.first
         @serverlist.on( :change ) { |control, value| # (?) Second argument needed?
           BIMserver.profiles.set_active_profile( value ) # (?) should this change the active profile?
-          set_active_profile()
-          BIMserver.btn_upload.tooltip = value
+          set_profile_edit( BIMserver.profiles.active_profile )
+          get_projects()
         }
         add_control(@serverlist, @base_profile, 'profile')
-
-        # Control: delete button
-        delete = SKUI::Button.new( 'Delete' ) { |control|
-          profile = BIMserver.profiles.active_profile
-          @serverlist.remove_item( profile.name )
-          BIMserver.profiles.delete_profile( profile )
-          BIMserver.profiles.set_active_profile() # (?) should this change the active profile?
-          set_active_profile()
-        }
-        delete.tooltip = 'Delete selected profile'
-        add_control( delete, @save_section )
-
         # Control: profile name
-        @name = SKUI::Textbox.new( profile.name )
         add_control( @name, @group, 'profile name' )
 
         # Control: address
-        @address = SKUI::Textbox.new( profile.address )
         add_control( @address, @group, 'address' )
 
         # Control: port
-        @port = SKUI::Textbox.new( profile.port )
         add_control( @port, @group, 'port')
 
         # Control: username
-        @username = SKUI::Textbox.new( profile.username )
         add_control( @username, @group, 'username')
 
         # Control: password
-        @password = SKUI::Textbox.new( profile.password )
         @password.password = true
         add_control( @password, @group, 'password' )
 
         # Control: projects listbox
-        @project = SKUI::Listbox.new( [profile.project] )
-        #@serverlist.value = serverlist.items.first
-        @project.on( :change ) { |control, value| # (?) Second argument needed?
+        @project = SKUI::Listbox.new( [@profile_edit.project] )
+        #get_projects()
+        add_control(@project, @group, 'project')
+
+        @address.on( :change ) { |control, value|
+          get_projects()
+        }
+        @port.on( :change ) { |control, value|
+          get_projects()
+        }
+        @username.on( :change ) { |control, value|
+          get_projects()
+        }
+        @password.on( :change ) { |control, value|
+          get_projects()
         }
 
-        # Control: load projects button
-        get_projects = SKUI::Button.new( 'Get projects' ) { |control|
-
+        # Control: delete button
+        delete = SKUI::Button.new( 'Delete' ) { |control|
           profile = BIMserver.profiles.active_profile
+          name = profile.name
+          @serverlist.remove_item( profile.name )
+          BIMserver.profiles.delete_profile( profile )
+          BIMserver.profiles.set_active_profile( ) # (?) should this change the active profile?
 
-          # create connection object that connects to the server
-          begin
-
-            @conn = OpenSourceBIM::BIMserverAPI::Connection.new( profile.address, profile.port )
-
-            # login on the server
-            begin
-              @conn.login( profile.username, profile.password )
-              #puts ('Connected to BIMserver at ' + address.value)
-              puts ('Logged in as ' + profile.username)
-
-              # Get user id
-              uoid = @conn.auth_interface.getLoggedInUser["oid"]
-
-              # get the id of the last revision
-              begin
-                roid = @conn.bimsie1_service_interface.getProjectByPoid( profile.project_oid )['lastRevisionId']
-              rescue Exception => error
-                puts error
-              end
-
-              # get revision number
-              revision = @conn.bimsie1_service_interface.getRevision( roid )['id']
-
-            rescue Exception => err
-              puts "Error connecting to BIMserver: #{err}"
-            end
-          rescue Exception => err
-            puts = "Error: #{err}"
-          end
-
+          set_profile_edit( BIMserver.profiles.active_profile )
+          set_status( 'Profile "' + name + '" deleted' )
         }
-        get_projects.tooltip = 'Get project list from server'
-        get_projects.width = 150
-        add_control( get_projects, @load_projects )
-        add_control(@project, @load_projects, 'projects')
+        delete.tooltip = 'Delete selected profile'
+        add_control( delete, @group )
 
         # Control: save button
         save = SKUI::Button.new( 'Save' ) { |control|
@@ -153,26 +134,43 @@ module OpenSourceBIM
           edit_profile.username = @username.value
           edit_profile.password = @password.value
           edit_profile.project = @project.value
-          edit_profile.project_oid = @projectlist[@project.value]
+
+          edit_profile.project_oid = @project_list.key( @project.value )
+
+          BIMserver.profiles.set_active_profile( edit_profile.name )
+          reset_server_list
+          set_profile_edit( BIMserver.profiles.active_profile )
+          @serverlist.value = @profile_edit.name
           BIMserver.profiles.write_config
-          # @status.value = 'Profile saved succesfully'
+          set_status( 'Profile "' + edit_profile.name + '" saved' )
         }
         save.tooltip = 'Save current profile'
-        add_control( save, @save_section )
+        add_control( save, @group )
 
         # Control: save as new profile
         new = SKUI::Button.new( 'New' ) { |control|
-          profile = Profile.new(@name.value,@address.value,@port.value,@username.value,@password.value,@project.value, @projectlist[@project.value])
+          profile = Profile.new(@name.value,@address.value,@port.value,@username.value,@password.value,@project.value,@project_list.key( @project.value ))
           BIMserver.profiles.add_profile( profile )
-          BIMserver.profiles.set_active_profile( profile )
-          @serverlist.add_item( profile.name )
-          set_active_profile()
+          BIMserver.profiles.set_active_profile( profile.name )
+          reset_server_list
+          set_profile_edit( BIMserver.profiles.active_profile )
+          @serverlist.value = @profile_edit.name
           BIMserver.profiles.write_config
-          # @status.value = 'Profile created succesfully'
+          set_status( 'Profile "' + profile.name + '" created' )
         }
         new.tooltip = 'Save as new profile'
-        add_control( new, @save_section )
+        add_control( new, @group )
 
+        # check if window is ready
+        @window.on( :ready ) {
+          set_size
+        }
+
+      end
+
+      def set_size
+        @base_profile.set_size
+        @group.set_size
       end
 
       def add_control( control, group, name=nil )
@@ -183,28 +181,76 @@ module OpenSourceBIM
         group.add_control( control )
       end
 
+      def reset_server_list
+        @serverlist.clear()
+        BIMserver.profiles.names.each do | name |
+          @serverlist.add_item( name )
+        end
+      end
+
+      def get_projects()
+        profile = @profile_edit
+        @project.clear() # empty project list control
+
+        # create connection object that connects to the server
+        begin
+          @conn = OpenSourceBIM::BIMserverAPI::Connection.new( profile.address, profile.port )
+          begin
+            @conn.login( profile.username, profile.password )
+            uoid = @conn.auth_interface.getLoggedInUser["oid"]
+
+            @project_list = Hash.new
+            @conn.service_interface.getUsersProjects(uoid).each do | project_hash |
+              @project_list[project_hash["oid"]] = project_hash["name"] # create hash containing all id's and names
+              @project.add_item( project_hash["name"] ) # add name to project list
+            end
+            @project.value = @project.items.first
+
+          rescue Exception => err
+            set_status("Error connecting to BIMserver: #{err}")
+          end
+        rescue Exception => err
+          set_status("Error: #{err}")
+        end
+        if @project.items.length < 1
+          @project.add_item( @profile_edit.project ) # add stored name to project list
+        end
+      end
+
       def toggle
         @serverlist.value = BIMserver.profiles.active_profile.name
         @window.toggle
       end
 
-      def set_active_profile()
-        profile = BIMserver.profiles.active_profile
-        @serverlist.value = profile.name
-        @name.value = profile.name
-        @address.value = profile.address
-        @port.value = profile.port
-        @username.value = profile.username
-        @password.value = profile.password
-        #@project.value = serverlist.items.first
-        if @project.items.include?(profile.project)
-          @project.value = profile.project
-        else
-          @project.clear()
-          @project.add_item( profile.project )
-          @project.value = @project.items.first
-        end
+      def set_status( message )
+        BIMserver.set_status( message )
+      end
 
+      def update_status()
+        if @ready == true
+          @status.value = BIMserver.status
+        end
+      end
+
+      def set_profile_edit( profile )
+
+        # create temporary copy of profile for editing
+        @profile_edit = BIMserver.profiles.active_profile.dup
+        #@serverlist.value = BIMserver.profiles.active_profile.name
+
+        @name.value = @profile_edit.name
+        @address.value = @profile_edit.address
+        @port.value = @profile_edit.port
+        @username.value = @profile_edit.username
+        @password.value = @profile_edit.password
+        #@project.value = serverlist.items.first
+        #if @project.items.include?(profile.project)
+        #  @project.value = profile.project
+        #else
+        #  @project.clear()
+        #  @project.add_item( profile.project )
+        #  @project.value = @project.items.first
+        #end
       end
     end # class ProfileWindow
   end # module BIMserver
