@@ -58,6 +58,7 @@ module OpenSourceBIM
         # check if window is ready
         @window.on( :ready ) {
           @ready = true
+          get_projects()
         }
 
         # Add controls
@@ -95,19 +96,22 @@ module OpenSourceBIM
 
         # Control: projects listbox
         @project = SKUI::Listbox.new( [@profile_edit.project] )
-        #get_projects()
         add_control(@project, @group, 'project')
 
         @address.on( :change ) { |control, value|
+          @profile_edit.address = @address.value
           get_projects()
         }
         @port.on( :change ) { |control, value|
+          @profile_edit.port = @port.value
           get_projects()
         }
         @username.on( :change ) { |control, value|
+          @profile_edit.username = @username.value
           get_projects()
         }
         @password.on( :change ) { |control, value|
+          @profile_edit.password = @password.value
           get_projects()
         }
 
