@@ -31,13 +31,13 @@ module OpenSourceBIM
     require File.join( PLUGIN_PATH, 'connection.rb' )
 
     class Profiles
-      attr_reader :conn
+      attr_reader :conn, :profiles
       def initialize()
 
         # Set config file
         pathname = File.expand_path( File.dirname(__FILE__) )
         @filepath = File.join(pathname, 'config.yml')
-        
+
         @profiles = Array.new()
         read_config
       end
@@ -61,29 +61,53 @@ module OpenSourceBIM
       end
 
       def set_connection( profile )
-        if $conn.nil?
+        
+        # (?) Always recreating the connection takes time, but the active profile can be changed, then it needs to reconnect
+        
+        #if $conn.nil?
+        #  $conn = BIMserver::Connection.new( profile )
+        #elsif $conn.profile == BIMserver.profiles.active_profile
+        #  return $conn
+        #else
           $conn = BIMserver::Connection.new( profile )
-        elsif $conn.profile == BIMserver.profiles.active_profile
-          return $conn
-        else
-          $conn = BIMserver::Connection.new( profile )
-        end
+        #end
       end
 
       def set_active_profile( name=nil )
-        profile = get_profile_by_name( name )
-        if profile.nil?
-          @active_profile = @profiles.first
+
+        # find profile "name"
+        if name.nil?
+          unless @active_profile.class.name == "Profile"
+            if @profiles.length == 0
+              @active_profile = Profile.new()
+              add_profile( @active_profile )
+            else
+              @active_profile = @profiles.first
+            end
+          end
         else
-          @active_profile = profile
+          profile = get_profile_by_name( name )
+          if profile.nil?
+            if @profiles.length == 0
+              @active_profile = Profile.new()
+              add_profile( @active_profile )
+            else
+              @active_profile = @profiles.first
+            end
+          else
+            @active_profile = profile
+          end
         end
+        
+        # only if there is a valid profile create connection and store profile hash
+        unless @active_profile.nil?
+          set_connection( @active_profile )
 
-        set_connection( @active_profile )
-
-        # store default profile md5 hash inside SketchUp model
-        md5 = Digest::MD5.new
-        md5.update @active_profile.to_hash.to_s
-        Sketchup.active_model.set_attribute( 'OpenSourceBIM', 'BIMserver_profile', md5.to_s )
+          # store default profile md5 hash inside SketchUp model
+          md5 = Digest::MD5.new
+          md5.update @active_profile.to_hash.to_s
+          Sketchup.active_model.set_attribute( 'OpenSourceBIM', 'BIMserver_profile', md5.to_s )
+        end
       end
 
       def names
@@ -91,7 +115,7 @@ module OpenSourceBIM
       end
 
       def write_config
-        
+
         config = Array.new
         @profiles.each do | profile |
           config  << profile.to_hash
@@ -122,7 +146,7 @@ module OpenSourceBIM
         end
       end
 
-      def add_profile( profile )
+      def add_profile( profile )        
         @profiles << profile
       end
     end # class Profiles

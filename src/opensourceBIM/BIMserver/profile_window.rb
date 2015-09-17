@@ -117,14 +117,18 @@ module OpenSourceBIM
 
         # Control: delete button
         delete = SKUI::Button.new( 'Delete' ) { |control|
-          profile = BIMserver.profiles.active_profile
-          name = profile.name
-          @serverlist.remove_item( profile.name )
-          BIMserver.profiles.delete_profile( profile )
-          BIMserver.profiles.set_active_profile( ) # (?) should this change the active profile?
+          unless BIMserver.profiles.profiles.length <= 1
+            profile = BIMserver.profiles.active_profile
+            name = profile.name
+            @serverlist.remove_item( profile.name )
+            BIMserver.profiles.delete_profile( profile )
+            BIMserver.profiles.set_active_profile( ) # (?) should this change the active profile?
 
-          set_profile_edit( BIMserver.profiles.active_profile )
-          set_status( 'Profile "' + name + '" deleted' )
+            set_profile_edit( BIMserver.profiles.active_profile )
+            set_status( 'Profile "' + name + '" deleted' )
+          else
+            set_status( 'Error: Profile not deleted! There must be at least one profile.' )
+          end
         }
         delete.tooltip = 'Delete selected profile'
         add_control( delete, @group )
@@ -153,14 +157,20 @@ module OpenSourceBIM
 
         # Control: save as new profile
         new = SKUI::Button.new( 'New' ) { |control|
-          profile = Profile.new(@name.value,@address.value,@port.value,@username.value,@password.value,@project.value,@project_list.key( @project.value ))
-          BIMserver.profiles.add_profile( profile )
-          BIMserver.profiles.set_active_profile( profile.name )
-          reset_server_list
-          set_profile_edit( BIMserver.profiles.active_profile )
-          @serverlist.value = @profile_edit.name
-          BIMserver.profiles.write_config
-          set_status( 'Profile "' + profile.name + '" created' )
+
+          # create new profile unless profile name exists
+          unless @serverlist.items.include? @name.value
+            profile = Profile.new(@name.value,@address.value,@port.value,@username.value,@password.value,@project.value,@project_list.key( @project.value ))
+            BIMserver.profiles.add_profile( profile )
+            BIMserver.profiles.set_active_profile( profile.name )
+            reset_server_list
+            set_profile_edit( BIMserver.profiles.active_profile )
+            @serverlist.value =  @name.value
+            BIMserver.profiles.write_config
+            set_status( 'Profile "' + profile.name + '" created' )
+          else
+            set_status( 'Error: No profile created! A profile with the name "' + @name.value + '" already exists. Please choose a different name.' )
+          end
         }
         new.tooltip = 'Save as new profile'
         add_control( new, @group )

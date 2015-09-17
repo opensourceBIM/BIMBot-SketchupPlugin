@@ -25,7 +25,7 @@ module OpenSourceBIM
   module BIMserver
     class Profile
       attr_accessor :name, :address, :port, :username, :password, :project, :project_oid
-      def initialize(name, address, port, username, password, project, project_oid)
+      def initialize(name, address="", port="", username="", password="", project="", project_oid="")
         @name = name
         @address = address
         @port = port
