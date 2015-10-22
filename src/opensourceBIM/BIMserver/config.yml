@@ -1,9 +1,8 @@
 ---
-default:
-  :name: default
+- :name: default
   :address: http://localhost
   :port: '8082'
   :username: admin
   :password: admin
   :project: default
-  :project_oid: 000000
+  :project_oid: '000000'
