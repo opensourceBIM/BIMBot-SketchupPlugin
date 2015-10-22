@@ -72,8 +72,8 @@ module OpenSourceBIM
 
       # close old upload window and create new
       if @upload_window
-        if @upload_window.window
-          @upload_window.window.close
+        if @upload_window
+          @upload_window.close
         end
       end
       @upload_window = UploadWindow.new()

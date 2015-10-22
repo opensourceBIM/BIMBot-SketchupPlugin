@@ -201,6 +201,10 @@ module OpenSourceBIM
         end
       end
 
+      def close
+        @window.close
+      end
+
       def add_control( control, group, name=nil )
         if control.is_a? SKUI::Textbox or control.is_a? SKUI::Listbox
           label = SKUI::Label.new( name.capitalize + ':', control )
